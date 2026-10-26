@@ -1,4 +1,4 @@
-﻿"""
+"""
 UCI protocol adapter — exposes Trinstinctus to chess GUIs and match runners.
 
 Standalone process: reads UCI commands on stdin, writes responses on
@@ -17,6 +17,7 @@ Usage from a GUI or match runner:
     python -m engine.uci_engine checkpoints/distilled.pt 800
     (second arg is num_sims, defaults to 800)
 """
+
 from __future__ import annotations
 
 import sys
@@ -67,7 +68,7 @@ class UCIEngine:
                 return
 
         if "moves" in parts:
-            for mv_str in parts[parts.index("moves") + 1:]:
+            for mv_str in parts[parts.index("moves") + 1 :]:
                 try:
                     self.board.push_uci(mv_str)
                 except ValueError:

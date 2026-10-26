@@ -25,6 +25,7 @@ On missing adapters, loads only what exists — the panel degrades to
 base + SF, which is a fully functional seven-voice setup minus five
 specific perspectives.
 """
+
 from __future__ import annotations
 
 import json
@@ -113,7 +114,7 @@ def _load_models() -> dict[str, torch.nn.Module]:
         if not adapter_path.exists():
             log.warning("adapter_missing", legend=legend, path=str(adapter_path))
             continue
-        m = ChessTransformer().to(device).eval()
+        m: torch.nn.Module = ChessTransformer().to(device).eval()
         m.load_state_dict(base_state)
         m = attach_lora(m, rank=rank)
         load_adapter(m, str(adapter_path))
@@ -125,7 +126,7 @@ def _load_models() -> dict[str, torch.nn.Module]:
         "models_loaded",
         base=str(base_ckpt),
         adapters=loaded,
-        missing=[l for l in LEGEND_ORDER if l not in loaded],
+        missing=[legend for legend in LEGEND_ORDER if legend not in loaded],
     )
     return models
 
@@ -181,7 +182,7 @@ def _handle_analyze(
     try:
         board = chess.Board(fen)
     except ValueError as e:
-        raise ValueError(f"invalid FEN: {e}")
+        raise ValueError(f"invalid FEN: {e}") from e
 
     # ── Base recommendation via MCTS ─────────────────────────────
     # 600 sims is enough for an accurate top-move in most positions.
@@ -198,16 +199,19 @@ def _handle_analyze(
         if name not in models:
             continue
         san, eval_cp, conf = _evaluate_policy(models[name], board)
-        voices.append({
-            "name": name.capitalize(),
-            "kind": "legend",
-            "best_move_san": san,
-            "eval_cp": eval_cp,
-            "confidence": conf,
-        })
+        voices.append(
+            {
+                "name": name.capitalize(),
+                "kind": "legend",
+                "best_move_san": san,
+                "eval_cp": eval_cp,
+                "confidence": conf,
+            }
+        )
 
     # ── Stockfish oracle ─────────────────────────────────────────
     from typing import cast
+
     import chess.engine as _ce
 
     sf_info = sf.analyse(board, chess.engine.Limit(depth=22), multipv=3)
@@ -233,13 +237,15 @@ def _handle_analyze(
         break
 
     if sf_best_san is not None:
-        voices.append({
-            "name": "Stockfish",
-            "kind": "oracle",
-            "best_move_san": sf_best_san,
-            "eval_cp": sf_eval,
-            "pv": sf_pv,
-        })
+        voices.append(
+            {
+                "name": "Stockfish",
+                "kind": "oracle",
+                "best_move_san": sf_best_san,
+                "eval_cp": sf_eval,
+                "pv": sf_pv,
+            }
+        )
 
     # ── Tag legends that disagree with SF's objective answer ────
     for v in voices:
@@ -252,12 +258,14 @@ def _handle_analyze(
         by_move[base_san].append("Base")
     for v in voices:
         by_move[v["best_move_san"]].append(v["name"])
-    agreements = [
-        {"move": mv, "voices": names, "count": len(names)}
-        for mv, names in by_move.items()
-        if mv is not None and len(names) >= 2
+    # Sort by count descending. Using an intermediate list of tuples gives
+    # mypy the concrete types it needs for `-t[2]` (unary minus on a plain
+    # int) — without it, the dict literal infers `object` for the count.
+    agreements_raw: list[tuple[str, list[str], int]] = [
+        (mv, names, len(names)) for mv, names in by_move.items() if mv is not None and len(names) >= 2
     ]
-    agreements.sort(key=lambda x: -x["count"])
+    agreements_raw.sort(key=lambda t: -t[2])
+    agreements = [{"move": mv, "voices": names, "count": cnt} for mv, names, cnt in agreements_raw]
 
     return {
         "fen": fen,
@@ -302,11 +310,13 @@ def main() -> None:
                 panel = _handle_analyze(models, sf, req)
                 commentary = generate_commentary(panel)
                 print(
-                    json.dumps({
-                        "status": "ok",
-                        "panel": panel,
-                        "commentary": commentary,
-                    }),
+                    json.dumps(
+                        {
+                            "status": "ok",
+                            "panel": panel,
+                            "commentary": commentary,
+                        }
+                    ),
                     flush=True,
                 )
             elif cmd == "health":

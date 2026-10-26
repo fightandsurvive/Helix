@@ -1,12 +1,16 @@
-﻿"""
+"""
 Datasets for training pipelines.
 
 SupervisedDS — reads GM games from the legend-first partitioned warehouse.
-                Queries hit the parent partitioned table, so the planner
-                prunes to the correct legend partition automatically.
+                Uses fetchall() — appropriate for small-to-medium corpora
+                (up to ~1M plies). For the full 13.2M-game corpus (~528M
+                plies), switch to a streaming IterableDataset with server-
+                side cursors to keep memory bounded.
+
 StyleDS      — per-legend dataset for adapter training, with style reward
                 attached to each sample.
 """
+
 from __future__ import annotations
 
 import chess
@@ -28,32 +32,51 @@ def _result_to_value(result: str, turn: chess.Color) -> float:
     return 0.0
 
 
-from torch.utils.data import IterableDataset
-
-class SupervisedDS(IterableDataset):
+class SupervisedDS(Dataset):
     def __init__(self, legend: str = "general", limit: int | None = None):
-        self.legend = legend
-        self.limit = limit
+        # Query the parent partitioned table — the router prunes to the
+        # correct legend partition. No dynamic table-name interpolation
+        # (that would be SQL injection-adjacent and defeats pruning).
+        with read_cursor() as cur:
+            q = """
+                SELECT m.fen_string, m.move_notation, g.result
+                FROM gm.moves m
+                JOIN gm.games g
+                  ON g.game_id = m.game_id
+                 AND g.legend_tag = m.legend_tag
+                WHERE m.legend_tag = %s
+                ORDER BY m.move_id
+            """
+            params: list = [legend]
+            if limit:
+                q += " LIMIT %s"
+                params.append(limit)
+            cur.execute(q, params)
+            self.rows = cur.fetchall()
 
-    def __iter__(self):
-        # Server-side cursor — fetches in chunks of `itersize` rows.
-        # Memory footprint: one chunk at a time (~10K rows × 250 bytes = 2.5MB).
-        with read_cursor(name=f"supervised_{uuid.uuid4().hex[:8]}") as cur:
-            cur.itersize = 10_000
-            q = """SELECT m.fen_string, m.move_notation, g.result
-                   FROM gm.moves m JOIN gm.games g ..."""
-            cur.execute(q, [self.legend])
-            for fen, san, result in cur:
-                yield self._make_sample(fen, san, result)
+    def __len__(self) -> int:
+        return len(self.rows)
+
+    def __getitem__(self, idx: int) -> dict:
+        fen, san, result = self.rows[idx]
+        board = chess.Board(fen)
+        move = board.parse_san(san)
+        enc = encode_board(board)
+        return {
+            "squares": enc["squares"],
+            "global": enc["global"],
+            "move_idx": torch.tensor(move_to_index(move), dtype=torch.long),
+            "value": torch.tensor([_result_to_value(result, board.turn)], dtype=torch.float32),
+        }
+
 
 class StyleDS(Dataset):
     """
     Per-legend dataset for adapter training.
 
     90/10 chronological split: earlier games train, later games validate.
-    Chronological (not random) is deliberate — it forces the adapter to
-    generalize to the legend's *later* style, not just memorize any
-    particular opening fashion.
+    Chronological (not random) forces the adapter to generalize to the
+    legend's *later* style, not just memorize any particular opening fashion.
     """
 
     def __init__(self, legend: str, limit: int | None = None):
@@ -92,8 +115,6 @@ class StyleDS(Dataset):
             "squares": enc["squares"],
             "global": enc["global"],
             "move_idx": torch.tensor(move_to_index(move), dtype=torch.long),
-            "value": torch.tensor(
-                [_result_to_value(result, board.turn)], dtype=torch.float32
-            ),
+            "value": torch.tensor([_result_to_value(result, board.turn)], dtype=torch.float32),
             "reward": torch.tensor([reward], dtype=torch.float32),
         }

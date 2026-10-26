@@ -1,4 +1,4 @@
-﻿"""
+"""
 Stage 4 — train one LoRA adapter per legend.
 
 Rank scales with dataset size (Morphy 400 games → r=4; Carlsen 4000+
@@ -8,6 +8,7 @@ represented legends need the capacity.
 After training, the adapter is registered in engine_state.checkpoints
 with phase='adapter' so the panel service can discover it.
 """
+
 from __future__ import annotations
 
 import argparse
@@ -32,12 +33,20 @@ log = get_logger(__name__)
 
 # Rank and LR scale with dataset size — see engine/lora.py docstring.
 RANK_BY_LEGEND = {
-    "morphy": 4, "fischer": 8, "petrosian": 8,
-    "kasparov": 16, "tal": 16, "carlsen": 32,
+    "morphy": 4,
+    "fischer": 8,
+    "petrosian": 8,
+    "kasparov": 16,
+    "tal": 16,
+    "carlsen": 32,
 }
 LR_BY_LEGEND = {
-    "morphy": 5e-5, "fischer": 1e-4, "petrosian": 1e-4,
-    "kasparov": 1e-4, "tal": 1e-4, "carlsen": 2e-4,
+    "morphy": 5e-5,
+    "fischer": 1e-4,
+    "petrosian": 1e-4,
+    "kasparov": 1e-4,
+    "tal": 1e-4,
+    "carlsen": 2e-4,
 }
 
 
@@ -66,7 +75,8 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--base", required=True)
     ap.add_argument(
-        "--legend", required=True,
+        "--legend",
+        required=True,
         choices=["morphy", "petrosian", "tal", "kasparov", "fischer", "carlsen"],
     )
     ap.add_argument("--epochs", type=int, default=5)
@@ -85,8 +95,7 @@ def main():
     if len(ds) == 0:
         log.error("no_data_for_legend", legend=args.legend)
         return
-    dl = DataLoader(ds, batch_size=32, shuffle=True, num_workers=8,
-                    pin_memory=True, drop_last=True)
+    dl = DataLoader(ds, batch_size=32, shuffle=True, num_workers=8, pin_memory=True, drop_last=True)
 
     trainable = [p for p in model.parameters() if p.requires_grad]
     opt = torch.optim.AdamW(trainable, lr=LR_BY_LEGEND[args.legend], weight_decay=1e-4)

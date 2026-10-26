@@ -1,4 +1,4 @@
-﻿"""
+"""
 Wald Sequential Probability Ratio Test.
 
 Stops an engine-vs-engine match when statistical confidence is reached,
@@ -11,6 +11,7 @@ H1: new_engine_elo >= elo1   (accept, promote checkpoint)
 Default (0, 5): "accept if we're at least 5 Elo stronger, reject if not."
 The 5-Elo margin prevents promoting noise.
 """
+
 from __future__ import annotations
 
 import math

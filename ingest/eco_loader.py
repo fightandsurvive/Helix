@@ -1,9 +1,10 @@
-﻿"""
+"""
 Load ECO opening dictionary from the Lichess GitHub TSV.
 
 One-time load. Re-running is idempotent (upsert). The TSV is ~3,000
 entries, ~500KB — fetched from github.com/lichess-org/chess-openings.
 """
+
 from __future__ import annotations
 
 import csv

@@ -1,4 +1,4 @@
-﻿"""
+"""
 God mode analysis helper — spawned as a subprocess from Rust's god_mode.rs.
 
 Input:  argv[1] = FEN
@@ -15,6 +15,7 @@ Brilliant detection:
 - Compared against SF's PV — only the top 3 SF moves are checked,
   because brilliant moves should also be good moves.
 """
+
 from __future__ import annotations
 
 import json
@@ -29,8 +30,11 @@ from config.settings import settings
 def _material(board: chess.Board) -> tuple[int, int]:
     """(white_material, black_material) in pawn-units."""
     values = {
-        chess.PAWN: 1, chess.KNIGHT: 3, chess.BISHOP: 3,
-        chess.ROOK: 5, chess.QUEEN: 9,
+        chess.PAWN: 1,
+        chess.KNIGHT: 3,
+        chess.BISHOP: 3,
+        chess.ROOK: 5,
+        chess.QUEEN: 9,
     }
     w = b = 0
     for sq in chess.SQUARES:
@@ -51,7 +55,9 @@ def analyze(fen: str) -> dict:
     try:
         # Get top 3 moves with principal variations
         info = engine.analyse(
-            board, chess.engine.Limit(depth=22), multipv=3,
+            board,
+            chess.engine.Limit(depth=22),
+            multipv=3,
         )
         results: list[dict] = []
         for pv in info:
@@ -59,12 +65,14 @@ def analyze(fen: str) -> dict:
                 continue
             move = pv["pv"][0]
             score = pv["score"].relative.score(mate_score=10000) or 0
-            results.append({
-                "uci": move.uci(),
-                "san": board.san(move),
-                "eval_cp": score,
-                "pv": [m.uci() for m in pv["pv"][:10]],
-            })
+            results.append(
+                {
+                    "uci": move.uci(),
+                    "san": board.san(move),
+                    "eval_cp": score,
+                    "pv": [m.uci() for m in pv["pv"][:10]],
+                }
+            )
 
         # Brilliant detection — from mover's perspective
         mover = board.turn

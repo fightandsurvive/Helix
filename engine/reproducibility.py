@@ -1,4 +1,4 @@
-﻿"""
+"""
 Reproducibility helpers.
 
 Every training run must be re-runnable. `torch.manual_seed` alone is not
@@ -9,6 +9,7 @@ The checkpoint-hash helper supports the provenance chain in
 engine_state.checkpoints: any checkpoint file can be verified against the
 SHA256 recorded at training time.
 """
+
 from __future__ import annotations
 
 import hashlib

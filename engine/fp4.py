@@ -1,4 +1,4 @@
-﻿"""
+"""
 NVFP4 training configuration via TorchAO 0.18.
 
 Requirements (enforced at runtime, falls back to BF16 transparently):
@@ -19,6 +19,7 @@ Isolating the API surface here means a torchao upgrade only touches
 this one file. When the NVFP4 API stabilizes (currently prototype), the
 import paths may change; only this module needs updating.
 """
+
 from __future__ import annotations
 
 import torch
@@ -29,10 +30,11 @@ from config.settings import settings
 log = get_logger(__name__)
 
 try:
-    from torchao.quantization import quantize_
     from torchao.prototype.moe_training.nvfp4_training.nvfp4_training import (
         NVFP4TrainingConfig,
     )
+    from torchao.quantization import quantize_
+
     _TORCHAO_AVAILABLE = True
 except ImportError:
     _TORCHAO_AVAILABLE = False
@@ -92,7 +94,8 @@ def enable_nvfp4_if_possible(model: torch.nn.Module) -> torch.nn.Module:
         return model
 
     # Keep the final 15% of blocks in BF16 — TorchTitan recipe.
-    total_blocks = len(model.blocks) if hasattr(model, "blocks") else 0
+    blocks = getattr(model, "blocks", None)
+    total_blocks = len(blocks) if blocks is not None else 0
     tail = max(1, int(total_blocks * 0.15))
     bf16_block_ids = set(range(total_blocks - tail, total_blocks))
     log.info(
@@ -105,9 +108,7 @@ def enable_nvfp4_if_possible(model: torch.nn.Module) -> torch.nn.Module:
         quantize_(
             model,
             NVFP4TrainingConfig(),
-            filter_fn=lambda m, name: not any(
-                f"blocks.{i}." in name for i in bf16_block_ids
-            ),
+            filter_fn=lambda m, name: not any(f"blocks.{i}." in name for i in bf16_block_ids),
         )
         log.info("nvfp4_enabled")
     except Exception as e:
@@ -117,7 +118,10 @@ def enable_nvfp4_if_possible(model: torch.nn.Module) -> torch.nn.Module:
     # torch.compile is required for competitive NVFP4 throughput —
     # without it the custom NVGEMM kernels don't fuse.
     try:
-        return torch.compile(model, mode="max-autotune")
+        # torch.compile returns a callable wrapper, not the original Module.
+        # The runtime behavior is correct; mypy can't see through
+        # torch.compile's return type — safe to ignore.
+        return torch.compile(model, mode="max-autotune")  # type: ignore[return-value]
     except Exception as e:
         log.error("torch_compile_failed", error=str(e))
         return model

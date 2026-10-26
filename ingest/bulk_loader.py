@@ -1,4 +1,4 @@
-﻿"""
+"""
 PGN bulk ingestion.
 
 Two-phase: parse PGN → TSV per shard (parallel), then COPY+INSERT
@@ -7,6 +7,7 @@ Two-phase: parse PGN → TSV per shard (parallel), then COPY+INSERT
 
 Idempotent via ON CONFLICT DO NOTHING on (game_id, legend_tag).
 """
+
 from __future__ import annotations
 
 import argparse
@@ -25,8 +26,12 @@ configure_logging()
 log = get_logger(__name__)
 
 LEGEND_MAP = {
-    "morphy": "morphy", "petrosian": "petrosian", "tal": "tal",
-    "kasparov": "kasparov", "fischer": "fischer", "carlsen": "carlsen",
+    "morphy": "morphy",
+    "petrosian": "petrosian",
+    "tal": "tal",
+    "kasparov": "kasparov",
+    "fischer": "fischer",
+    "carlsen": "carlsen",
 }
 
 
@@ -49,19 +54,27 @@ def phase_of(piece_count: int) -> str:
 def parse_pgn(args: tuple[str, str, str, str]) -> None:
     """Parse one PGN file → two TSVs (games + moves). Runs in worker process."""
     path, out_games, out_moves, source = args
-    with open(path, "r", encoding="utf-8", errors="ignore") as f, \
-         open(out_games, "w", buffering=1 << 20) as g_out, \
-         open(out_moves, "w", buffering=1 << 20) as m_out, \
-         tqdm(desc=Path(path).name) as pbar:
+    with (
+        open(path, encoding="utf-8", errors="ignore") as f,
+        open(out_games, "w", buffering=1 << 20) as g_out,
+        open(out_moves, "w", buffering=1 << 20) as m_out,
+        tqdm(desc=Path(path).name) as pbar,
+    ):
         while (game := chess.pgn.read_game(f)) is not None:
             h = game.headers
             eco = h.get("ECO", "A00")[:3]
             if not (eco[0] in "ABCDE" and eco[1:].isdigit()):
                 eco = "A00"
-            gid = abs(hash((
-                h.get("Site", ""), h.get("Date", ""),
-                h.get("White", ""), h.get("Black", ""),
-            ))) & ((1 << 62) - 1)
+            gid = abs(
+                hash(
+                    (
+                        h.get("Site", ""),
+                        h.get("Date", ""),
+                        h.get("White", ""),
+                        h.get("Black", ""),
+                    )
+                )
+            ) & ((1 << 62) - 1)
 
             board = game.board()
             moves: list[tuple[int, str, str, int]] = []
@@ -73,20 +86,26 @@ def parse_pgn(args: tuple[str, str, str, str]) -> None:
 
             legend = tag_legend(h.get("White", ""), h.get("Black", ""))
             g_out.write(
-                "\t".join([
-                    str(gid), eco,
-                    h.get("White", "?"), h.get("Black", "?"),
-                    str(h.get("WhiteElo", "\\N")) or "\\N",
-                    str(h.get("BlackElo", "\\N")) or "\\N",
-                    h.get("Result", "*"),
-                    h.get("Date", "\\N").replace(".", "-") or "\\N",
-                    "{}", legend, str(len(moves)), source,
-                ]) + "\n"
+                "\t".join(
+                    [
+                        str(gid),
+                        eco,
+                        h.get("White", "?"),
+                        h.get("Black", "?"),
+                        str(h.get("WhiteElo", "\\N")) or "\\N",
+                        str(h.get("BlackElo", "\\N")) or "\\N",
+                        h.get("Result", "*"),
+                        h.get("Date", "\\N").replace(".", "-") or "\\N",
+                        "{}",
+                        legend,
+                        str(len(moves)),
+                        source,
+                    ]
+                )
+                + "\n"
             )
             for ply, fen, san, pc in moves:
-                m_out.write(
-                    f"{gid}\t{eco}\t{legend}\t{ply}\t{fen}\t{san}\t{pc}\t{phase_of(pc)}\n"
-                )
+                m_out.write(f"{gid}\t{eco}\t{legend}\t{ply}\t{fen}\t{san}\t{pc}\t{phase_of(pc)}\n")
             pbar.update(1)
 
 
@@ -106,9 +125,7 @@ def load_shard(games_tsv: str, moves_tsv: str) -> None:
                     ) ON COMMIT DROP;
                 """)
                 with open(games_tsv, "rb") as f:
-                    with cur.copy(
-                        "COPY stg_games FROM STDIN WITH (FORMAT text, NULL '\\N')"
-                    ) as copy:
+                    with cur.copy("COPY stg_games FROM STDIN WITH (FORMAT text, NULL '\\N')") as copy:
                         while chunk := f.read(1 << 20):
                             copy.write(chunk)
 
@@ -168,8 +185,7 @@ def main():
     log.info("pgn_ingest_start", files=len(pgns))
 
     tasks = [
-        (str(p), f"{args.tmp}/{i}_g.tsv", f"{args.tmp}/{i}_m.tsv", args.source)
-        for i, p in enumerate(pgns)
+        (str(p), f"{args.tmp}/{i}_g.tsv", f"{args.tmp}/{i}_m.tsv", args.source) for i, p in enumerate(pgns)
     ]
     with mp.Pool(args.jobs) as pool:
         pool.map(parse_pgn, tasks)

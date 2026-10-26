@@ -1,4 +1,4 @@
-﻿"""
+"""
 Gumbel-AlphaZero root selection (Danihelka et al., ICLR 2022).
 
 Why this exists: PUCT spreads simulations across all root children.
@@ -23,6 +23,7 @@ our SPRT gate does not show this at 400 sims, the implementation is
 wrong — not the paper. Add the A/B test to the orchestrator's gate
 suite before trusting this in production.
 """
+
 from __future__ import annotations
 
 import math
@@ -97,13 +98,9 @@ def run_gumbel_root_search(
         # lean on logits (no Q signal yet) and late rounds lean on Q.
         completed = visits > 0
         sigma_q = np.where(completed, q_vals, 0.0)
-        scores = root_logits + c_scale * sigma_q / (
-            1.0 + c_visit * visits / max(total_sims, 1)
-        )
+        scores = root_logits + c_scale * sigma_q / (1.0 + c_visit * visits / max(total_sims, 1))
 
         # Keep top half
-        remaining = sorted(remaining, key=lambda i: -scores[i])[
-            : max(1, len(remaining) // 2)
-        ]
+        remaining = sorted(remaining, key=lambda i: -scores[i])[: max(1, len(remaining) // 2)]
 
     return remaining[0]

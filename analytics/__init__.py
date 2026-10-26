@@ -1,1 +1,1 @@
-﻿"""Analytics package — Weakness Finder and derived insight generation."""
+"""Analytics package — Weakness Finder and derived insight generation."""

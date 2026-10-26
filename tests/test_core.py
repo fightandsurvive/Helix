@@ -1,20 +1,20 @@
-﻿"""
+"""
 Core smoke tests — invariants that, if broken, silently corrupt training.
 
 Run `pytest tests/` before every training session. These are cheap (~5s
 total) and catch the failures that produce wasted GPU days.
 """
+
 from __future__ import annotations
 
 import chess
-import numpy as np
 import pytest
 import torch
 
 from engine.board_encoder import encode_board
 from engine.model import ChessTransformer
 from engine.move_encoder import NUM_MOVES, index_to_move, legal_mask, move_to_index
-from engine.phase_router import DEFAULT_CONFIG, route_weights, STYLE_PROFILES
+from engine.phase_router import STYLE_PROFILES, route_weights
 
 
 def test_policy_space_roundtrip():
@@ -46,7 +46,10 @@ def test_encoder_shape():
 def test_model_forward():
     """Shape and finiteness at small scale (CPU-safe)."""
     model = ChessTransformer(
-        num_layers=2, d_model=64, nhead=4, dim_feedforward=128,
+        num_layers=2,
+        d_model=64,
+        nhead=4,
+        dim_feedforward=128,
     ).eval()
     enc = encode_board(chess.Board())
     with torch.no_grad():

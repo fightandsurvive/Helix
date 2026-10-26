@@ -1,4 +1,4 @@
-﻿"""
+"""
 Runtime capability manifest.
 
 Probes the machine (GPU, torch, checkpoints, Ollama, Stockfish, Syzygy)
@@ -10,6 +10,7 @@ HELIX_ENGINE_ENABLED=true but there's no checkpoint, the probe reports
 'engine_available: false, reason: no_checkpoint'. UI shows actionable
 guidance rather than a broken button.
 """
+
 from __future__ import annotations
 
 from dataclasses import asdict, dataclass
@@ -56,7 +57,8 @@ def probe() -> Capabilities:
     is_blackwell = False
     cuda_ok = False
     try:
-        import torch  # noqa: PLC0415
+        import torch
+
         if torch.cuda.is_available():
             cuda_ok = True
             props = torch.cuda.get_device_properties(0)
@@ -91,7 +93,8 @@ def probe() -> Capabilities:
         training_reason = ""
 
     # Ollama probe
-    import requests  # noqa: PLC0415
+    import requests
+
     try:
         r = requests.get(f"{settings.ollama_url}/api/tags", timeout=2)
         ollama_ok = r.status_code == 200
@@ -125,5 +128,6 @@ def probe() -> Capabilities:
 
 
 if __name__ == "__main__":
-    import json  # noqa: PLC0415
+    import json
+
     print(json.dumps(probe().to_dict(), indent=2))

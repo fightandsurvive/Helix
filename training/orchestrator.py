@@ -1,4 +1,4 @@
-﻿"""
+"""
 Unattended training daemon.
 
 Flow per generation:
@@ -19,13 +19,13 @@ Signals:
 Only one orchestrator can run at a time — enforced by the partial unique
 index on ops.training_runs WHERE status='running'.
 """
+
 from __future__ import annotations
 
 import argparse
 import signal
 import subprocess
 import sys
-import time
 from pathlib import Path
 
 import yaml
@@ -83,8 +83,7 @@ def run_stage(cmd: list[str], progress_cb=None, poll: float = 1.0) -> int:
 
 def stage_selfplay(rep, gen: int, cfg: dict, checkpoints_dir: Path):
     target = cfg["games_per_generation"]
-    rep.stage_set(gen, "selfplay", 0.0, games_target=target,
-                  message=f"generation {gen} self-play")
+    rep.stage_set(gen, "selfplay", 0.0, games_target=target, message=f"generation {gen} self-play")
 
     def cb():
         with read_cursor() as cur:
@@ -93,12 +92,19 @@ def stage_selfplay(rep, gen: int, cfg: dict, checkpoints_dir: Path):
         rep.stage_update(progress=min(n / target, 1.0), games_completed=n)
 
     cmd = [
-        "python", "-m", "training.train_rl",
-        "--load", latest_ckpt(checkpoints_dir),
-        "--generation", str(gen),
-        "--games", str(target),
-        "--sims", str(cfg["sims_per_move"]),
-        "--save", str(checkpoints_dir / f"rl_gen{gen}.pt"),
+        "python",
+        "-m",
+        "training.train_rl",
+        "--load",
+        latest_ckpt(checkpoints_dir),
+        "--generation",
+        str(gen),
+        "--games",
+        str(target),
+        "--sims",
+        str(cfg["sims_per_move"]),
+        "--save",
+        str(checkpoints_dir / f"rl_gen{gen}.pt"),
     ]
     if cfg.get("use_gumbel"):
         cmd.append("--use-gumbel")
@@ -133,12 +139,19 @@ def stage_gate(rep, gen: int, cfg: dict, checkpoints_dir: Path) -> bool:
 
     rc = run_stage(
         [
-            "python", "-m", "training.gate",
-            "--gate", gate_name,
-            "--ckpt", str(checkpoints_dir / f"rl_gen{gen}.pt"),
-            "--ref-name", "sf17",
-            "--ref-skill", str(cfg["sprt"]["ref_skill"]),
-            "--max-games", str(cfg["sprt"]["max_games"]),
+            "python",
+            "-m",
+            "training.gate",
+            "--gate",
+            gate_name,
+            "--ckpt",
+            str(checkpoints_dir / f"rl_gen{gen}.pt"),
+            "--ref-name",
+            "sf17",
+            "--ref-skill",
+            str(cfg["sprt"]["ref_skill"]),
+            "--max-games",
+            str(cfg["sprt"]["max_games"]),
         ],
         progress_cb=cb,
     )
@@ -166,22 +179,28 @@ def stage_adapters(rep, gen: int, cfg: dict, checkpoints_dir: Path):
         rep.stage_update(progress=i / len(LEGENDS), message=f"adapter {legend}")
         rc = run_stage(
             [
-                "python", "-m", "training.train_adapters",
-                "--base", base, "--legend", legend, "--epochs", "5",
+                "python",
+                "-m",
+                "training.train_adapters",
+                "--base",
+                base,
+                "--legend",
+                legend,
+                "--epochs",
+                "5",
             ]
         )
         if rc != 0:
             log.warning("adapter_training_failed", legend=legend, rc=rc)
 
     # Validation runs once at the end
-    run_stage(
-        ["python", "-m", "training.validate_adapters", "--base", base]
-    )
+    run_stage(["python", "-m", "training.validate_adapters", "--base", base])
     rep.stage_update(progress=1.0, message="adapters trained + validated")
 
 
 def stage_prune(rep, gen: int, cfg: dict):
     from common.db import transaction
+
     rep.stage_set(gen, "pruning", 0.0, message="pruning old generations")
     with transaction() as cur:
         cur.execute(
@@ -221,9 +240,7 @@ def base_converged(gen: int, cfg: dict) -> tuple[bool, str]:
 
     # Trigger (c): absolute Elo target
     with read_cursor() as cur:
-        cur.execute(
-            "SELECT elo_estimate FROM eval.elo_history WHERE generation=%s", (gen,)
-        )
+        cur.execute("SELECT elo_estimate FROM eval.elo_history WHERE generation=%s", (gen,))
         row = cur.fetchone()
     if row and row[0] >= cfg["freeze"]["elo_target"]:
         return True, "elo_target"
@@ -270,8 +287,7 @@ def main():
                 log.info("base_frozen", generation=gen, reason=reason)
                 rep.stage_set(gen, "adapters", 0.0, message=f"freeze: {reason} — training final adapters")
                 stage_adapters(rep, gen, cfg, checkpoints_dir)
-                rep.stage_set(gen, "idle", 1.0,
-                              message=f"frozen at gen {gen} ({reason}); run complete")
+                rep.stage_set(gen, "idle", 1.0, message=f"frozen at gen {gen} ({reason}); run complete")
                 break
 
             gen += 1

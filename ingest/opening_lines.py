@@ -1,4 +1,4 @@
-﻿"""
+"""
 Populate app.opening_lines from gm.eco_dict.
 
 Each ECO entry becomes an opening line with:
@@ -9,6 +9,7 @@ Each ECO entry becomes an opening line with:
 
 This populates the opening trainer's deck. Runs once after eco_loader.
 """
+
 from __future__ import annotations
 
 import chess
@@ -61,7 +62,13 @@ def main():
                 ON CONFLICT (line_id) DO NOTHING
                 """,
                 (
-                    line_id, eco, name, " ".join(ucis), sans, fens, side,
+                    line_id,
+                    eco,
+                    name,
+                    " ".join(ucis),
+                    sans,
+                    fens,
+                    side,
                     max(1, min(5, len(ucis) // 4)),
                 ),
             )

@@ -1,1 +1,1 @@
-﻿"""Helix configuration package."""
+"""Helix configuration package."""

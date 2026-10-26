@@ -1,4 +1,4 @@
-﻿"""
+"""
 Sequential phase routing across the six-legacy adapter blend.
 
 The core design decision: opening routing is SEQUENTIAL, not simultaneous.
@@ -18,10 +18,11 @@ Users can override them per-profile via the app's Style Weight dashboard;
 those overrides land in `engine_state.style_weights` and are read at
 runtime by the panel service and UCI engine.
 """
+
 from __future__ import annotations
 
+from collections.abc import Mapping
 from dataclasses import dataclass
-from typing import Mapping
 
 import torch
 
@@ -38,31 +39,31 @@ class PhaseConfig:
     phases.
     """
 
-    opening_development: dict[str, float]    # plies 1-8
+    opening_development: dict[str, float]  # plies 1-8
     opening_consolidation: dict[str, float]  # plies 9-16
-    middlegame: dict[str, float]             # pc >= 12, ply > 16
-    endgame: dict[str, float]                # pc < 12
+    middlegame: dict[str, float]  # pc >= 12, ply > 16
+    endgame: dict[str, float]  # pc < 12
 
     def __post_init__(self):
         for name in (
-            "opening_development", "opening_consolidation",
-            "middlegame", "endgame",
+            "opening_development",
+            "opening_consolidation",
+            "middlegame",
+            "endgame",
         ):
             weights = getattr(self, name)
             total = sum(weights.values())
             if abs(total - 1.0) > 0.01:
-                raise ValueError(
-                    f"PhaseConfig.{name} weights sum to {total:.4f}, expected 1.0"
-                )
+                raise ValueError(f"PhaseConfig.{name} weights sum to {total:.4f}, expected 1.0")
 
 
 # The default profile — what "balanced" means. Weight on 'base' is high
 # (50%) so personality is a flavor, not a takeover.
 DEFAULT_CONFIG = PhaseConfig(
-    opening_development   = {"base": 0.5, "morphy": 0.5},
-    opening_consolidation = {"base": 0.5, "petrosian": 0.5},
-    middlegame            = {"base": 0.4, "tal": 0.2, "kasparov": 0.2, "fischer": 0.2},
-    endgame               = {"base": 0.5, "fischer": 0.25, "carlsen": 0.25},
+    opening_development={"base": 0.5, "morphy": 0.5},
+    opening_consolidation={"base": 0.5, "petrosian": 0.5},
+    middlegame={"base": 0.4, "tal": 0.2, "kasparov": 0.2, "fischer": 0.2},
+    endgame={"base": 0.5, "fischer": 0.25, "carlsen": 0.25},
 )
 
 
@@ -121,10 +122,7 @@ def blend_policies(
             out = out + w * adapters[name]
         # Missing adapters silently contribute zero — the total weight
         # may be < 1.0, so we renormalize.
-    total = sum(
-        w for name, w in weights.items()
-        if name == "base" or name in adapters
-    )
+    total = sum(w for name, w in weights.items() if name == "base" or name in adapters)
     return out / total if total > 0 else base
 
 
@@ -132,21 +130,21 @@ def blend_policies(
 STYLE_PROFILES: dict[str, PhaseConfig] = {
     "balanced": DEFAULT_CONFIG,
     "romantic": PhaseConfig(
-        opening_development   = {"base": 0.3, "morphy": 0.7},
-        opening_consolidation = {"base": 0.4, "morphy": 0.3, "petrosian": 0.3},
-        middlegame            = {"base": 0.3, "tal": 0.4, "kasparov": 0.3},
-        endgame               = {"base": 0.5, "fischer": 0.25, "carlsen": 0.25},
+        opening_development={"base": 0.3, "morphy": 0.7},
+        opening_consolidation={"base": 0.4, "morphy": 0.3, "petrosian": 0.3},
+        middlegame={"base": 0.3, "tal": 0.4, "kasparov": 0.3},
+        endgame={"base": 0.5, "fischer": 0.25, "carlsen": 0.25},
     ),
     "iron_fortress": PhaseConfig(
-        opening_development   = {"base": 0.5, "petrosian": 0.5},
-        opening_consolidation = {"base": 0.3, "petrosian": 0.7},
-        middlegame            = {"base": 0.4, "petrosian": 0.3, "fischer": 0.3},
-        endgame               = {"base": 0.4, "carlsen": 0.6},
+        opening_development={"base": 0.5, "petrosian": 0.5},
+        opening_consolidation={"base": 0.3, "petrosian": 0.7},
+        middlegame={"base": 0.4, "petrosian": 0.3, "fischer": 0.3},
+        endgame={"base": 0.4, "carlsen": 0.6},
     ),
     "anti_stockfish": PhaseConfig(
-        opening_development   = {"base": 0.5, "morphy": 0.5},
-        opening_consolidation = {"base": 0.5, "petrosian": 0.5},
-        middlegame            = {"base": 0.3, "tal": 0.35, "kasparov": 0.35},
-        endgame               = {"base": 0.2, "carlsen": 0.8},
+        opening_development={"base": 0.5, "morphy": 0.5},
+        opening_consolidation={"base": 0.5, "petrosian": 0.5},
+        middlegame={"base": 0.3, "tal": 0.35, "kasparov": 0.35},
+        endgame={"base": 0.2, "carlsen": 0.8},
     ),
 }

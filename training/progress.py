@@ -1,4 +1,4 @@
-﻿"""
+"""
 Progress reporter — throttled writes to ops.training_progress.
 
 Max 1 DB write per second, except on stage changes (which flush
@@ -8,12 +8,13 @@ status updates while keeping the app's Training Monitor responsive.
 `new_run` context manager creates the ops.training_runs row, yields a
 reporter, and marks the run 'completed' or 'failed' on exit.
 """
+
 from __future__ import annotations
 
 import time
 import uuid
+from collections.abc import Iterator
 from contextlib import contextmanager
-from typing import Iterator
 
 from psycopg.types.json import Json
 

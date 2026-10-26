@@ -1,4 +1,4 @@
-﻿"""
+"""
 Stage 1 — supervised bootstrap on the GM warehouse.
 
 Goal: ~2900 Elo. Teaches legal moves, opening patterns, basic tactical
@@ -8,6 +8,7 @@ teach chess from scratch — they don't cover openings or endgames.
 Saves pure state_dict to checkpoints/supervised.pt — weights_only=True
 compatible for every downstream consumer.
 """
+
 from __future__ import annotations
 
 import argparse
@@ -54,14 +55,22 @@ def main():
 
     ds = SupervisedDS(legend="general", limit=args.limit)
     dl = DataLoader(
-        ds, batch_size=args.batch, shuffle=True, num_workers=args.workers,
-        pin_memory=True, drop_last=True, persistent_workers=True,
+        ds,
+        batch_size=args.batch,
+        shuffle=True,
+        num_workers=args.workers,
+        pin_memory=True,
+        drop_last=True,
+        persistent_workers=True,
     )
 
     opt = torch.optim.AdamW(model.parameters(), lr=args.lr, weight_decay=1e-4)
     total_steps = args.epochs * len(dl)
     sched = torch.optim.lr_scheduler.OneCycleLR(
-        opt, max_lr=args.lr, total_steps=total_steps, pct_start=0.03,
+        opt,
+        max_lr=args.lr,
+        total_steps=total_steps,
+        pct_start=0.03,
     )
     ce, mse = nn.CrossEntropyLoss(), nn.MSELoss()
     writer = SummaryWriter("logs/supervised")

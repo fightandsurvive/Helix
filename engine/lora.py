@@ -1,4 +1,4 @@
-﻿"""
+"""
 LoRA adapters for personality fine-tuning.
 
 Rationale: 400 Morphy games cannot train 380M params without catastrophic
@@ -22,6 +22,7 @@ state_dicts of tensors and load with weights_only=True. This is intentional:
 adapters may be shared between installations, and weights_only=True is the
 safest possible deserialization.
 """
+
 from __future__ import annotations
 
 import torch
@@ -55,7 +56,7 @@ class LoRALinear(nn.Module):
         d_out, d_in = base.weight.shape
         self.A = nn.Parameter(torch.zeros(rank, d_in))
         self.B = nn.Parameter(torch.zeros(d_out, rank))
-        nn.init.kaiming_uniform_(self.A, a=5 ** 0.5)
+        nn.init.kaiming_uniform_(self.A, a=5**0.5)
         # B stays zero — ΔW = BA = 0 at init
         self.scale = alpha / rank
 
@@ -79,10 +80,15 @@ def attach_lora(model: nn.Module, rank: int) -> nn.Module:
             continue
         if "gate" in name:
             continue  # MoE router — leave dense
-        if any(k in name for k in (
-            "attn.in_proj", "attn.out_proj",
-            "policy_head", "value_head",
-        )):
+        if any(
+            k in name
+            for k in (
+                "attn.in_proj",
+                "attn.out_proj",
+                "policy_head",
+                "value_head",
+            )
+        ):
             targets.append(name)
 
     for name in targets:
@@ -103,10 +109,7 @@ def save_adapter(model: nn.Module, path: str) -> None:
     weights_only=True. No metadata, no nested dicts — just A and B
     matrices keyed by module path.
     """
-    state = {
-        k: v for k, v in model.state_dict().items()
-        if k.endswith(".A") or k.endswith(".B")
-    }
+    state = {k: v for k, v in model.state_dict().items() if k.endswith(".A") or k.endswith(".B")}
     torch.save(state, path)
     log.info("adapter_saved", path=path, params=len(state))
 

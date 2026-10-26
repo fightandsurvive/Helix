@@ -1,4 +1,4 @@
-﻿# ── ML core ──────────────────────────────────────────────────────
+# ── ML core ──────────────────────────────────────────────────────
 # torch 2.14 ships NVGEMM with CUTLASS-SM100 kernels — required for
 # NVFP4 GEMM support through Inductor on Blackwell.
 torch==2.14.0
@@ -8,7 +8,7 @@ torchao==0.18.0
 numpy==2.5.2
 
 # ── Chess ────────────────────────────────────────────────────────
-python-chess==1.11.2
+python-chess==1.999.0
 
 # ── Data & DB ────────────────────────────────────────────────────
 # psycopg3 (not psycopg2) — async support matters for the accuracy
@@ -29,3 +29,5 @@ tensorboard==2.18.0
 pytest==8.3.3
 ruff==0.7.3
 mypy==1.13.0
+
+types-requests==2.32.0.20241016

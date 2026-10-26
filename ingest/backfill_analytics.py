@@ -1,4 +1,4 @@
-﻿"""
+"""
 One-time backfill for existing data.
 
 Fills analytics data for games that predate the analytics schema:
@@ -8,6 +8,7 @@ Fills analytics data for games that predate the analytics schema:
 
 Idempotent. Run once after migrating from pre-analytics to current schema.
 """
+
 from __future__ import annotations
 
 import chess
@@ -15,8 +16,10 @@ import chess
 from common.db import read_cursor, transaction
 from config.logging_setup import configure_logging, get_logger
 from engine.gambit_matcher import (
-    find_gambits, load_gambit_index_from_db,
-    moves_from_match, moves_from_pgn,
+    find_gambits,
+    load_gambit_index_from_db,
+    moves_from_match,
+    moves_from_pgn,
 )
 
 configure_logging()
@@ -109,8 +112,14 @@ def backfill_gambits() -> None:
                     ON CONFLICT DO NOTHING
                     """,
                     (
-                        gid, participant, opponent, ucolor,
-                        hit.gambit_id, hit.depth, result, played_at,
+                        gid,
+                        participant,
+                        opponent,
+                        ucolor,
+                        hit.gambit_id,
+                        hit.depth,
+                        result,
+                        played_at,
                     ),
                 )
             n += 1
@@ -134,14 +143,10 @@ def backfill_gambits() -> None:
         for hit in find_gambits(moves, index):
             if hit.side == "white":
                 participant, opponent = w, b
-                result_for_p = "win" if result == "1-0" else (
-                    "loss" if result == "0-1" else "draw"
-                )
+                result_for_p = "win" if result == "1-0" else ("loss" if result == "0-1" else "draw")
             else:
                 participant, opponent = b, w
-                result_for_p = "win" if result == "0-1" else (
-                    "loss" if result == "1-0" else "draw"
-                )
+                result_for_p = "win" if result == "0-1" else ("loss" if result == "1-0" else "draw")
             with transaction() as cur:
                 cur.execute(
                     """
@@ -152,13 +157,20 @@ def backfill_gambits() -> None:
                     ON CONFLICT DO NOTHING
                     """,
                     (
-                        mid, participant, opponent, hit.side,
-                        hit.gambit_id, hit.depth, result_for_p, created_at,
+                        mid,
+                        participant,
+                        opponent,
+                        hit.side,
+                        hit.gambit_id,
+                        hit.depth,
+                        result_for_p,
+                        created_at,
                     ),
                 )
             n += 1
 
     log.info("gambit_backfill_done", rows=n)
+
 
 def backfill_per_move():
     """
@@ -181,6 +193,7 @@ def backfill_per_move():
             """
         )
     log.info("per_move_backfill_queued")
+
 
 def enqueue_accuracy_jobs() -> None:
     """Queue accuracy jobs for any game missing accuracy_results."""

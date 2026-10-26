@@ -1,4 +1,4 @@
-﻿"""
+"""
 Transposition-aware gambit matcher.
 
 Prefix-matching under-counts gambits by 30-40% because transpositions
@@ -17,6 +17,7 @@ abstraction. Both app.personal_games (via PGN) and eval.matches (via
 match_moves table) produce this shape, so there is exactly one matcher
 and no dual code paths.
 """
+
 from __future__ import annotations
 
 import io
@@ -33,9 +34,10 @@ log = get_logger(__name__)
 @dataclass(frozen=True)
 class GambitHit:
     """A single gambit detection for one game."""
+
     gambit_id: str
-    side: str       # 'white' or 'black' — the color that plays the gambit
-    depth: int      # ply count of the gambit line
+    side: str  # 'white' or 'black' — the color that plays the gambit
+    depth: int  # ply count of the gambit line
 
 
 def _position_key(board: chess.Board) -> str:
@@ -71,9 +73,7 @@ def build_gambit_index(
             log.warning("gambit_bad_moves", gambit_id=gambit_id, error=str(e))
             continue
         key = _position_key(board)
-        index.setdefault(key, []).append(
-            GambitHit(gambit_id=gambit_id, side=side, depth=len(moves))
-        )
+        index.setdefault(key, []).append(GambitHit(gambit_id=gambit_id, side=side, depth=len(moves)))
     return index
 
 

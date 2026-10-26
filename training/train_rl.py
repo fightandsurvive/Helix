@@ -1,4 +1,4 @@
-﻿"""
+"""
 Stage 3 — self-play reinforcement learning.
 
 Per generation:
@@ -11,6 +11,7 @@ Per generation:
 `--resume` supports crash recovery by checking how many games have
 already been written for this generation and playing only the remainder.
 """
+
 from __future__ import annotations
 
 import argparse
@@ -66,18 +67,20 @@ def play_game(
             probs /= probs.sum()
 
         target = np.zeros(NUM_MOVES, dtype=np.float32)
-        for m, p in zip(moves, probs):
+        for m, p in zip(moves, probs, strict=False):
             target[move_to_index(m)] = p
 
         enc = encode_board(board)
-        samples.append({
-            "squares": enc["squares"],
-            "global": enc["global"],
-            "policy": torch.from_numpy(target),
-            "turn": board.turn,
-            "ply": ply,
-            "fen": board.fen(),
-        })
+        samples.append(
+            {
+                "squares": enc["squares"],
+                "global": enc["global"],
+                "policy": torch.from_numpy(target),
+                "turn": board.turn,
+                "ply": ply,
+                "fen": board.fen(),
+            }
+        )
         board.push(random.choices(moves, weights=probs)[0])
         ply += 1
 
@@ -120,10 +123,19 @@ def persist_batch(gen: int, batch: list[tuple[list, str, int]], version: str) ->
                 pid += 1
                 pc = len(chess.Board(s["fen"]).piece_map())
                 phase = "Opening" if pc >= 28 else ("Middlegame" if pc >= 12 else "Endgame")
-                rows.append((
-                    gen, pid, gid, s["ply"], s["fen"],
-                    s["policy"].tolist(), s["value"].item(), pc, phase,
-                ))
+                rows.append(
+                    (
+                        gen,
+                        pid,
+                        gid,
+                        s["ply"],
+                        s["fen"],
+                        s["policy"].tolist(),
+                        s["value"].item(),
+                        pc,
+                        phase,
+                    )
+                )
             if rows:
                 execute_batch(
                     cur,
@@ -166,8 +178,9 @@ def main():
     ap.add_argument("--batch", type=int, default=512)
     ap.add_argument("--save", default="checkpoints/rl.pt")
     ap.add_argument("--seed", type=int, default=42)
-    ap.add_argument("--use-gumbel", action="store_true",
-                    help="Use Gumbel-AlphaZero root selection (SPRT-verify first)")
+    ap.add_argument(
+        "--use-gumbel", action="store_true", help="Use Gumbel-AlphaZero root selection (SPRT-verify first)"
+    )
     args = ap.parse_args()
 
     seed_everything(args.seed)
@@ -188,10 +201,12 @@ def main():
         already_played = cur.fetchone()[0]
 
     if already_played > 0:
-        log.info("selfplay_resume",
-                 generation=args.generation,
-                 already_played=already_played,
-                 remaining=max(0, args.games - already_played))
+        log.info(
+            "selfplay_resume",
+            generation=args.generation,
+            already_played=already_played,
+            remaining=max(0, args.games - already_played),
+        )
 
     remaining = max(0, args.games - already_played)
     if remaining > 0:
@@ -226,8 +241,7 @@ def main():
         log.error("no_training_rows", generation=args.generation)
         return
 
-    dl = DataLoader(RLDS(rows), batch_size=args.batch, shuffle=True,
-                    num_workers=8, pin_memory=True)
+    dl = DataLoader(RLDS(rows), batch_size=args.batch, shuffle=True, num_workers=8, pin_memory=True)
     model.train()
     for batch in tqdm(dl, desc="train"):
         sq = batch["squares"].to(device)

@@ -1,9 +1,10 @@
-﻿"""
+"""
 Puzzle sources:
   - lichess:    bulk CSV from database.lichess.org (~5M puzzles, 450MB compressed)
   - gm_derived: SF-verified positions where the GM's move was clearly best
                 (best move ≥200cp above 2nd best, GM actually played it)
 """
+
 from __future__ import annotations
 
 import argparse
@@ -113,9 +114,7 @@ def load_gm_derived(max_puzzles: int = 5000):
                         try:
                             board = chess.Board(fen)
                             actual = board.parse_san(san)
-                            info = engine.analyse(
-                                board, chess.engine.Limit(depth=22), multipv=2
-                            )
+                            info = engine.analyse(board, chess.engine.Limit(depth=22), multipv=2)
                             if len(info) < 2:
                                 continue
                             s1 = info[0]["score"].relative.score(mate_score=10000) or 0
@@ -127,11 +126,7 @@ def load_gm_derived(max_puzzles: int = 5000):
                                 continue
                             pid = f"gm_{gid}_{board.ply()}"
                             pc = len(board.piece_map())
-                            phase = (
-                                "Opening" if pc >= 28
-                                else "Middlegame" if pc >= 12
-                                else "Endgame"
-                            )
+                            phase = "Opening" if pc >= 28 else "Middlegame" if pc >= 12 else "Endgame"
                             cur.execute(
                                 """
                                 INSERT INTO app.puzzles
@@ -141,8 +136,15 @@ def load_gm_derived(max_puzzles: int = 5000):
                                 ON CONFLICT DO NOTHING
                                 """,
                                 (
-                                    pid, fen, best.uci(), 1800, ["gm_derived"],
-                                    "gm_derived", eco, pc, phase,
+                                    pid,
+                                    fen,
+                                    best.uci(),
+                                    1800,
+                                    ["gm_derived"],
+                                    "gm_derived",
+                                    eco,
+                                    pc,
+                                    phase,
                                 ),
                             )
                             n += 1

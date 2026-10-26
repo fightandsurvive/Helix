@@ -1,4 +1,4 @@
-﻿"""
+"""
 Retry helper for external I/O (DB, HTTP, subprocess).
 
 Why custom instead of raw tenacity: we want uniform logging and
@@ -12,13 +12,17 @@ Jitter matters when 32 workers all hit the same DB recovery moment —
 without jitter they retry in lockstep and re-saturate the DB. tenacity's
 wait_exponential_jitter solves this.
 """
+
 from __future__ import annotations
 
+from collections.abc import Callable
 from functools import wraps
-from typing import Callable, TypeVar
+from typing import TypeVar
 
 from tenacity import (
     retry as _retry,
+)
+from tenacity import (
     retry_if_exception_type,
     stop_after_attempt,
     wait_exponential_jitter,
@@ -47,6 +51,7 @@ def retry(
     Backoff schedule: 1s, 2s, 4s, 8s, ... capped at 30s per wait, ±30%
     jitter. After `stop_after` attempts, the last exception is re-raised.
     """
+
     def decorator(fn: F) -> F:
         wrapped = _retry(
             stop=stop_after_attempt(stop_after),

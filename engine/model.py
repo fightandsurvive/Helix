@@ -1,4 +1,4 @@
-﻿"""
+"""
 Chess Transformer with optional Mixture-of-Experts FFN.
 
 Architecture (24L d=1024 default):
@@ -13,6 +13,7 @@ Parameter counts:
     Large (24L, d=1024, MoE): ~1.4B (420M active)   ← target
     XL (32L, d=1024, MoE): ~2.1B   ← aspirational, needs 2× GPU
 """
+
 from __future__ import annotations
 
 import torch
@@ -26,8 +27,11 @@ class DenseFFN(nn.Module):
     def __init__(self, d: int, d_ff: int, dropout: float = 0.0):
         super().__init__()
         self.net = nn.Sequential(
-            nn.Linear(d, d_ff), nn.GELU(), nn.Dropout(dropout),
-            nn.Linear(d_ff, d), nn.Dropout(dropout),
+            nn.Linear(d, d_ff),
+            nn.GELU(),
+            nn.Dropout(dropout),
+            nn.Linear(d_ff, d),
+            nn.Dropout(dropout),
         )
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
@@ -66,23 +70,23 @@ class MoEFFN(nn.Module):
         # Stack expert weights into single tensors for indexed batched access.
         # Shape (E, d, d_ff) allows `self.w1[expert_idx]` to yield a
         # per-token weight matrix in one gather.
-        self.w1 = nn.Parameter(torch.randn(n_experts, d, d_ff) * (1.0 / d ** 0.5))
-        self.w2 = nn.Parameter(torch.randn(n_experts, d_ff, d) * (1.0 / d_ff ** 0.5))
+        self.w1 = nn.Parameter(torch.randn(n_experts, d, d_ff) * (1.0 / d**0.5))
+        self.w2 = nn.Parameter(torch.randn(n_experts, d_ff, d) * (1.0 / d_ff**0.5))
         self.dropout = nn.Dropout(dropout)
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         shape = x.shape
-        x_flat = x.reshape(-1, shape[-1])                # (B*T, d)
-        gate_logits = self.gate(x_flat)                  # (B*T, E)
+        x_flat = x.reshape(-1, shape[-1])  # (B*T, d)
+        gate_logits = self.gate(x_flat)  # (B*T, E)
         topk_w, topk_i = gate_logits.topk(self.top_k, dim=-1)
         topk_w = torch.softmax(topk_w, dim=-1, dtype=torch.float32).to(x.dtype)
 
         out = torch.zeros_like(x_flat)
         for k in range(self.top_k):
-            expert_idx = topk_i[:, k]                    # (B*T,)
-            weight = topk_w[:, k].unsqueeze(-1)          # (B*T, 1)
-            w1 = self.w1[expert_idx]                     # (B*T, d, d_ff)
-            w2 = self.w2[expert_idx]                     # (B*T, d_ff, d)
+            expert_idx = topk_i[:, k]  # (B*T,)
+            weight = topk_w[:, k].unsqueeze(-1)  # (B*T, 1)
+            w1 = self.w1[expert_idx]  # (B*T, d, d_ff)
+            w2 = self.w2[expert_idx]  # (B*T, d_ff, d)
             h = torch.bmm(x_flat.unsqueeze(1), w1).squeeze(1)
             h = F.gelu(h)
             y = torch.bmm(h.unsqueeze(1), w2).squeeze(1)
@@ -108,11 +112,7 @@ class TransformerBlock(nn.Module):
         self.norm1 = nn.RMSNorm(d)
         self.attn = nn.MultiheadAttention(d, nhead, dropout=dropout, batch_first=True)
         self.norm2 = nn.RMSNorm(d)
-        self.ffn = (
-            MoEFFN(d, d_ff, n_experts, top_k, dropout)
-            if use_moe
-            else DenseFFN(d, d_ff, dropout)
-        )
+        self.ffn = MoEFFN(d, d_ff, n_experts, top_k, dropout) if use_moe else DenseFFN(d, d_ff, dropout)
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         h = self.norm1(x)
@@ -149,20 +149,26 @@ class ChessTransformer(nn.Module):
         self.global_proj = nn.Linear(num_global_feats, d_model)
         self.cls_token = nn.Parameter(torch.zeros(1, 1, d_model))
 
-        self.blocks = nn.ModuleList([
-            TransformerBlock(d_model, nhead, dim_feedforward, use_moe, n_experts, top_k, dropout)
-            for _ in range(num_layers)
-        ])
+        self.blocks = nn.ModuleList(
+            [
+                TransformerBlock(d_model, nhead, dim_feedforward, use_moe, n_experts, top_k, dropout)
+                for _ in range(num_layers)
+            ]
+        )
         self.norm = nn.RMSNorm(d_model)
 
         # Policy head projects pooled CLS token to 4672 logits.
         # 1024 intermediate width chosen so the head is ~5% of total params.
         self.policy_head = nn.Sequential(
-            nn.Linear(d_model, 1024), nn.GELU(), nn.Linear(1024, 4672),
+            nn.Linear(d_model, 1024),
+            nn.GELU(),
+            nn.Linear(1024, 4672),
         )
         # Value head projects to a single scalar; tanh bounds to [-1, 1].
         self.value_head = nn.Sequential(
-            nn.Linear(d_model, 512), nn.GELU(), nn.Linear(512, 1),
+            nn.Linear(d_model, 512),
+            nn.GELU(),
+            nn.Linear(512, 1),
         )
 
         # Initialize embeddings with small std — standard for transformers,
@@ -185,15 +191,15 @@ class ChessTransformer(nn.Module):
             value:  (B, 1) in [-1, 1], from side-to-move perspective
         """
         B = squares.size(0)
-        x = self.piece_embedding(squares) + self.pos_embedding    # (B, 64, d)
-        g = self.global_proj(global_feats).unsqueeze(1)           # (B, 1, d)
-        c = self.cls_token.expand(B, -1, -1)                      # (B, 1, d)
-        x = torch.cat([c, g, x], dim=1)                           # (B, 66, d)
+        x = self.piece_embedding(squares) + self.pos_embedding  # (B, 64, d)
+        g = self.global_proj(global_feats).unsqueeze(1)  # (B, 1, d)
+        c = self.cls_token.expand(B, -1, -1)  # (B, 1, d)
+        x = torch.cat([c, g, x], dim=1)  # (B, 66, d)
 
         for blk in self.blocks:
             x = blk(x)
         x = self.norm(x)
-        pooled = x[:, 0]                                          # CLS pool
+        pooled = x[:, 0]  # CLS pool
 
         policy = self.policy_head(pooled)
         value = torch.tanh(self.value_head(pooled))

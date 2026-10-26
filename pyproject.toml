@@ -2,7 +2,7 @@
 name = "helix"
 version = "0.1.0"
 description = "Neural MCTS chess engine and multi-voice coaching workstation"
-requires-python = ">=3.15"
+requires-python = ">=3.13"
 license = { text = "Proprietary" }
 authors = [{ name = "Helix" }]
 
@@ -16,8 +16,21 @@ addopts = "-v --tb=short"
 [tool.ruff]
 line-length = 110
 target-version = "py313"
-select = ["E", "F", "W", "I", "N", "UP", "B", "C4", "SIM", "RUF"]
-ignore = ["E501"]
+
+[tool.ruff.lint]
+# Catching: unused imports, undefined names, import order, B (bugbear),
+# C4 (comprehensions), UP (pyupgrade), RUF (ruff-specific bug checks).
+# Not included: SIM (style simplifications) — most are debatable in a
+# codebase that values readability, and turning them on produces noise.
+select = ["E", "F", "W", "I", "N", "UP", "B", "C4", "RUF"]
+ignore = [
+    "E501",   # line-length — formatter handles this
+    "N806",   # non-lowercase variable (matrix dims B, T, etc.)
+    "N812",   # functional imported as F (torch convention)
+    "RUF001", # ambiguous unicode in strings — ×, α, etc. are intentional
+    "RUF002", # ambiguous unicode in docstrings
+    "RUF003", # ambiguous unicode in comments
+]
 
 [tool.ruff.format]
 quote-style = "double"

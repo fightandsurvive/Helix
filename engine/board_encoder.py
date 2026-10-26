@@ -1,4 +1,4 @@
-﻿"""
+"""
 Board → model input tensor encoding.
 
 64 squares, one token each. Fixed token sequence (66 tokens total:
@@ -9,6 +9,7 @@ The global token carries side-to-move, castling rights, en-passant file,
 and halfmove clock. All four are projected to d_model in the model itself;
 this module only produces the raw feature vector.
 """
+
 from __future__ import annotations
 
 import chess
@@ -19,8 +20,18 @@ import torch
 # This mapping is fixed and must never change — checkpoints are trained
 # against it, and a swap invalidates every saved weight.
 PIECE_TO_IDX = {
-    "P": 1, "N": 2, "B": 3, "R": 4, "Q": 5, "K": 6,
-    "p": 7, "n": 8, "b": 9, "r": 10, "q": 11, "k": 12,
+    "P": 1,
+    "N": 2,
+    "B": 3,
+    "R": 4,
+    "Q": 5,
+    "K": 6,
+    "p": 7,
+    "n": 8,
+    "b": 9,
+    "r": 10,
+    "q": 11,
+    "k": 12,
 }
 
 # Global feature layout: [stm, castle_K, castle_Q, castle_k, castle_q,
@@ -59,7 +70,7 @@ def encode_board(board: chess.Board) -> dict:
     # positions look "very long" to the network anyway.
     halfmove = min(board.halfmove_clock, 100) / 100.0
 
-    global_feats = np.array([stm] + castling + ep_file + [halfmove], dtype=np.float32)
+    global_feats = np.array([stm, *castling, *ep_file, halfmove], dtype=np.float32)
 
     return {
         "squares": torch.from_numpy(squares),

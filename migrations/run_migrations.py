@@ -1,4 +1,4 @@
-﻿#!/usr/bin/env python3
+#!/usr/bin/env python3
 """
 Migration runner.
 
@@ -14,6 +14,7 @@ Behavior:
 
 Enterprise note: NEVER edit an applied migration. Add a new one.
 """
+
 from __future__ import annotations
 
 import hashlib

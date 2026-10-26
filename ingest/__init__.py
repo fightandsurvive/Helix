@@ -1,1 +1,1 @@
-﻿"""Ingestion package — PGN, ECO, puzzles, personal games, gambits."""
+"""Ingestion package — PGN, ECO, puzzles, personal games, gambits."""

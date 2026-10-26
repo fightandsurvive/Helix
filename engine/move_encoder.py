@@ -1,4 +1,4 @@
-﻿"""
+"""
 AlphaZero 4672-way move space encoding.
 
 4672 = 64 from-squares × 73 move-types, where 73 = 56 queen-slides +
@@ -14,6 +14,7 @@ white perspective, up is +rank; from black, up is -rank. This halves the
 effective input space the network has to learn — the same pattern
 regardless of side.
 """
+
 from __future__ import annotations
 
 import chess
@@ -49,7 +50,7 @@ def move_to_index(move: chess.Move) -> int:
         piece_idx = {chess.KNIGHT: 0, chess.BISHOP: 1, chess.ROOK: 2}[move.promotion]
         if dr > 0:  # promoting side moving "up"
             dir_idx = 0 if df < 0 else (1 if df == 0 else 2)
-        else:       # "down"
+        else:  # "down"
             dir_idx = 0 if df > 0 else (1 if df == 0 else 2)
         move_type = 64 + piece_idx * 3 + dir_idx
 

@@ -1,4 +1,4 @@
-﻿"""
+"""
 Recompute gambit plays for a personal profile.
 
 Used by import flow (as a repair/recheck step) and by backfill_analytics.
@@ -8,6 +8,7 @@ was enabled, or for full recomputation after a gambit registry update.
 
 Also refreshes the analytics materialized views after recomputing.
 """
+
 from __future__ import annotations
 
 import argparse
@@ -58,8 +59,14 @@ def compute_for_profile(profile_id: int, gambit_index: dict) -> int:
                     ON CONFLICT DO NOTHING
                     """,
                     (
-                        gid, participant, opponent, ucolor,
-                        hit.gambit_id, hit.depth, result, played_at,
+                        gid,
+                        participant,
+                        opponent,
+                        ucolor,
+                        hit.gambit_id,
+                        hit.depth,
+                        result,
+                        played_at,
                     ),
                 )
             n += 1

@@ -1,4 +1,5 @@
-﻿"""Nightly refresh of Helix materialized views (Windows Task Scheduler)."""
+"""Nightly refresh of Helix materialized views (Windows Task Scheduler)."""
+
 from common.db import transaction
 from config.logging_setup import configure_logging, get_logger
 

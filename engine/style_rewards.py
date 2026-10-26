@@ -1,4 +1,4 @@
-﻿"""
+"""
 Per-legend stylistic reward functions.
 
 Dual role:
@@ -18,6 +18,7 @@ signature. The adapters are still trained separately so their individual
 choice preferences diverge — Tal is more romantic (wilder sacrifices),
 Kasparov is more scientific (calculated piece sacrifices to open lines).
 """
+
 from __future__ import annotations
 
 import chess
@@ -26,8 +27,11 @@ import chess
 def _material(board: chess.Board) -> dict[chess.Color, int]:
     """Sum standard material values for each side. Kings excluded."""
     values = {
-        chess.PAWN: 1, chess.KNIGHT: 3, chess.BISHOP: 3,
-        chess.ROOK: 5, chess.QUEEN: 9,
+        chess.PAWN: 1,
+        chess.KNIGHT: 3,
+        chess.BISHOP: 3,
+        chess.ROOK: 5,
+        chess.QUEEN: 9,
     }
     totals = {chess.WHITE: 0, chess.BLACK: 0}
     for sq in chess.SQUARES:
@@ -89,9 +93,8 @@ def r_tal_kasparov(board: chess.Board, move: chess.Move) -> float:
     material_after = _material(b)
 
     # Positive when the mover gave up more material than they gained
-    sac_amount = (
-        (material_before[mover] - material_after[mover])
-        - (material_before[not mover] - material_after[not mover])
+    sac_amount = (material_before[mover] - material_after[mover]) - (
+        material_before[not mover] - material_after[not mover]
     )
     reward = min(max(sac_amount, 0) / 9.0, 1.0) * 0.7
 
@@ -124,8 +127,22 @@ def r_fischer(board: chess.Board, move: chess.Move) -> float:
         reward += 0.4
 
     long_diag = {
-        chess.A1, chess.B2, chess.C3, chess.D4, chess.E5, chess.F6, chess.G7, chess.H8,
-        chess.A8, chess.B7, chess.C6, chess.D5, chess.E4, chess.F3, chess.G2, chess.H1,
+        chess.A1,
+        chess.B2,
+        chess.C3,
+        chess.D4,
+        chess.E5,
+        chess.F6,
+        chess.G7,
+        chess.H8,
+        chess.A8,
+        chess.B7,
+        chess.C6,
+        chess.D5,
+        chess.E4,
+        chess.F3,
+        chess.G2,
+        chess.H1,
     }
     piece = b.piece_at(move.to_square)
     if piece and piece.piece_type == chess.BISHOP and move.to_square in long_diag:
@@ -157,7 +174,8 @@ def r_fischer_carlsen_endgame(board: chess.Board, move: chess.Move) -> float:
     def weakness(files: list[int]) -> int:
         doubled = sum(1 for f in files if f >= 2)
         isolated = sum(
-            1 for i, f in enumerate(files)
+            1
+            for i, f in enumerate(files)
             if f and (i == 0 or not files[i - 1]) and (i == 7 or not files[i + 1])
         )
         return doubled + isolated

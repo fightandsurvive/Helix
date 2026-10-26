@@ -1,4 +1,4 @@
-﻿"""
+"""
 Stage 2b — train on a Stockfish-distilled corpus.
 
 Same architecture as supervised, different targets:
@@ -12,6 +12,7 @@ Two invocations chain:
 Learning rate is 1e-4 (half of supervised) — this is fine-tuning, not
 from-scratch training. Larger LR would destroy the supervised foundation.
 """
+
 from __future__ import annotations
 
 import argparse
@@ -67,8 +68,7 @@ class DistillDS(Dataset):
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--tsv", required=True)
-    ap.add_argument("--base", default=None,
-                    help="Optional base checkpoint to continue training from")
+    ap.add_argument("--base", default=None, help="Optional base checkpoint to continue training from")
     ap.add_argument("--epochs", type=int, default=2)
     ap.add_argument("--batch", type=int, default=512)
     ap.add_argument("--lr", type=float, default=1e-4)
@@ -86,8 +86,13 @@ def main():
 
     ds = DistillDS(args.tsv)
     dl = DataLoader(
-        ds, batch_size=args.batch, shuffle=True, num_workers=12,
-        pin_memory=True, drop_last=True, persistent_workers=True,
+        ds,
+        batch_size=args.batch,
+        shuffle=True,
+        num_workers=12,
+        pin_memory=True,
+        drop_last=True,
+        persistent_workers=True,
     )
     opt = torch.optim.AdamW(model.parameters(), lr=args.lr, weight_decay=1e-4)
     ce, mse = nn.CrossEntropyLoss(), nn.MSELoss()

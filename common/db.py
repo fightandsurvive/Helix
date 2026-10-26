@@ -1,4 +1,4 @@
-﻿"""
+"""
 PostgreSQL access layer — psycopg3 with connection pooling.
 
 Why a module: every caller writes to the same warehouse. Centralizing
@@ -17,10 +17,11 @@ Two public contexts:
 
 Both are context managers so `with transaction() as cur:` works naturally.
 """
+
 from __future__ import annotations
 
+from collections.abc import Iterator
 from contextlib import contextmanager
-from typing import Iterator
 
 from psycopg import Connection, Cursor
 from psycopg_pool import ConnectionPool

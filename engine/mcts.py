@@ -1,4 +1,4 @@
-﻿"""
+"""
 PUCT Monte Carlo Tree Search.
 
 Standard AlphaZero search:
@@ -19,6 +19,7 @@ behind an SPRT gate — the paper claims ~3× sample efficiency at
 400-800 sims, but we validate this claim experimentally before
 changing the default.
 """
+
 from __future__ import annotations
 
 import math
@@ -30,7 +31,7 @@ import torch
 from config.logging_setup import get_logger
 from engine import syzygy
 from engine.board_encoder import encode_board
-from engine.move_encoder import legal_mask, move_to_index
+from engine.move_encoder import move_to_index
 
 log = get_logger(__name__)
 
@@ -136,7 +137,7 @@ class MCTS:
             total = priors.sum()
             priors = priors / total if total > 0 else np.full(len(legal), 1.0 / len(legal))
 
-        for m, p in zip(legal, priors):
+        for m, p in zip(legal, priors, strict=False):
             node.children[m] = Node(prior=float(p), parent=node)
         return value
 
@@ -190,7 +191,7 @@ class MCTS:
         if add_noise:
             moves = list(root.children.keys())
             noise = np.random.dirichlet([self.dirichlet_alpha] * len(moves))
-            for m, n in zip(moves, noise):
+            for m, n in zip(moves, noise, strict=False):
                 c = root.children[m]
                 c.prior = (1 - self.noise_frac) * c.prior + self.noise_frac * float(n)
 
@@ -259,7 +260,11 @@ class MCTS:
                 self._backup(node, v)
 
         best_idx = run_gumbel_root_search(
-            root_logits, root.children, self.num_sims, rng, run_sims_for_child,
+            root_logits,
+            root.children,
+            self.num_sims,
+            rng,
+            run_sims_for_child,
         )
         # Populate root's visit counts by running a final pass through
         # the selected child (or just trust the sequential halving).

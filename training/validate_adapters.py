@@ -1,4 +1,4 @@
-﻿"""
+"""
 Post-training validation for all six adapters.
 
 Reports per-legend move-match %. Flags:
@@ -9,6 +9,7 @@ Panel service does not require this script to pass to run — it just
 shows fewer voices. But the Style Weight dashboard gate uses
 VALIDATION_THRESHOLDS to enable blending only when all six pass.
 """
+
 from __future__ import annotations
 
 import argparse
@@ -33,8 +34,12 @@ LEGENDS = ["morphy", "petrosian", "tal", "kasparov", "fischer", "carlsen"]
 # Below this move-match %, the adapter is treated as "not ready" by the
 # app's Style Weight dashboard gate. Above 75% is suspicious.
 VALIDATION_THRESHOLDS = {
-    "morphy": 45, "petrosian": 45, "tal": 50,
-    "kasparov": 50, "fischer": 50, "carlsen": 50,
+    "morphy": 45,
+    "petrosian": 45,
+    "tal": 50,
+    "kasparov": 50,
+    "fischer": 50,
+    "carlsen": 50,
 }
 
 

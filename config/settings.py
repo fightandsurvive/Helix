@@ -13,13 +13,14 @@ Usage:
     from config.settings import settings
     settings.database_url
 """
+
 from __future__ import annotations
 
 from functools import lru_cache
 from pathlib import Path
-from typing import Literal, Any
+from typing import Any, Literal
 
-from pydantic import Field, PostgresDsn, field_validator
+from pydantic import Field, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -33,25 +34,43 @@ class Settings(BaseSettings):
         extra="ignore",
     )
 
+    @field_validator("checkpoints_dir", "syzygy_path", "stockfish_path")
+    @classmethod
+    def _expand_user(cls, v: Path) -> Path:
+        """Expand ~ and make relative paths absolute against cwd."""
+        return v.expanduser().resolve() if not v.is_absolute() else v.expanduser()
+
     @field_validator("database_url", mode="before")
     @classmethod
     def _normalize_db_url(cls, v: Any) -> Any:
         """
         Accept both 'postgres://' and 'postgresql://' schemes.
 
-        Typed as Any because this is a mode='before' validator — Pydantic
-        passes the raw env value (str) and we return str, which Pydantic
-        then converts to PostgresDsn. Using `str` here would trigger a
-        mypy "incompatible types" complaint since the field is PostgresDsn.
+        mode='before' means we get the raw env value (str) and return a
+        normalised str for pydantic to store. Using Any on both sides is
+        deliberate — the alternative (annotating as str) triggers a mypy
+        mismatch against the field's declared type in pydantic v2.
         """
         if isinstance(v, str) and v.startswith("postgres://"):
             return v.replace("postgres://", "postgresql://", 1)
         return v
+
+    @field_validator("database_url")
+    @classmethod
+    def _validate_db_url(cls, v: str) -> str:
+        """
+        Post-parse check: reject anything that isn't a postgresql:// URI.
+        This replaces the validation we used to get from PostgresDsn.
+        """
+        if not v.startswith("postgresql://"):
+            raise ValueError(f"database_url must start with 'postgresql://', got: {v[:30]}...")
+        return v
+
     # ── Database ─────────────────────────────────────────────────
     # PostgresDsn validates that the scheme is postgres:// or postgresql://
     # and that the rest of the URI parses. Stringifies back to a plain URI
     # that psycopg3 accepts.
-    database_url: PostgresDsn = Field(
+    database_url: str = Field(
         default="postgresql://trin:trin_dev@localhost:5432/helix_db",
         description="psycopg3 connection URI for the Helix warehouse",
     )
@@ -111,23 +130,6 @@ class Settings(BaseSettings):
         default=True,
         description="Enable LLM commentary in coach panel",
     )
-
-    @field_validator("checkpoints_dir", "syzygy_path", "stockfish_path")
-    @classmethod
-    def _expand_user(cls, v: Path) -> Path:
-        """Expand ~ and make relative paths absolute against cwd."""
-        return v.expanduser().resolve() if not v.is_absolute() else v.expanduser()
-
-    @field_validator("database_url", mode="before")
-    @classmethod
-    def _normalize_db_url(cls, v: str) -> str:
-        """
-        Accept both 'postgres://' and 'postgresql://' schemes.
-        PostgresDsn accepts both but psycopg3 prefers postgresql://.
-        """
-        if isinstance(v, str) and v.startswith("postgres://"):
-            return v.replace("postgres://", "postgresql://", 1)
-        return v
 
 
 @lru_cache(maxsize=1)

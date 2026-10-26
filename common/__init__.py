@@ -1,1 +1,1 @@
-﻿"""Shared helpers used across engine, training, and ingest."""
+"""Shared helpers used across engine, training, and ingest."""

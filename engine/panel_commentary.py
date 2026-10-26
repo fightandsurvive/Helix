@@ -1,4 +1,4 @@
-﻿"""
+"""
 The Legends commentary synthesis.
 
 Takes the structured panel JSON (seven voices, base engine, Stockfish
@@ -22,6 +22,7 @@ Graceful degradation: if Ollama is unreachable, returns a deterministic
 fallback built from the panel data. The panel UI still renders — user
 just doesn't get the prose synthesis.
 """
+
 from __future__ import annotations
 
 import requests
@@ -81,12 +82,10 @@ def _fallback_commentary(panel: dict, error: str) -> str:
     sf_voice = next((v for v in panel["voices"] if v["kind"] == "oracle"), None)
     sf_move = sf_voice["best_move_san"] if sf_voice else "?"
     agrees = [
-        v["name"] for v in panel["voices"]
-        if v["kind"] == "legend" and not v.get("differs_from_sf", True)
+        v["name"] for v in panel["voices"] if v["kind"] == "legend" and not v.get("differs_from_sf", True)
     ]
     disagrees = [
-        v["name"] for v in panel["voices"]
-        if v["kind"] == "legend" and v.get("differs_from_sf", False)
+        v["name"] for v in panel["voices"] if v["kind"] == "legend" and v.get("differs_from_sf", False)
     ]
     parts = [f"The engine recommends {base_move}. Stockfish recommends {sf_move}."]
     if agrees:
@@ -110,12 +109,15 @@ def generate_commentary(panel: dict) -> str:
     legends = [v for v in panel["voices"] if v["kind"] == "legend"]
     sf_voice = next((v for v in panel["voices"] if v["kind"] == "oracle"), None)
 
-    legend_lines = "\n".join(
-        f"- {v['name']}: {v['best_move_san']} "
-        f"(eval {v['eval_cp']}cp, policy confidence {v['confidence'] * 100:.0f}%)"
-        + (" — DIFFERS from Stockfish" if v.get("differs_from_sf") else " — agrees with Stockfish")
-        for v in legends
-    ) or "- (no adapters trained yet)"
+    legend_lines = (
+        "\n".join(
+            f"- {v['name']}: {v['best_move_san']} "
+            f"(eval {v['eval_cp']}cp, policy confidence {v['confidence'] * 100:.0f}%)"
+            + (" — DIFFERS from Stockfish" if v.get("differs_from_sf") else " — agrees with Stockfish")
+            for v in legends
+        )
+        or "- (no adapters trained yet)"
+    )
 
     sf_line_eval = f"{sf_voice['eval_cp']}cp" if sf_voice else "?"
 

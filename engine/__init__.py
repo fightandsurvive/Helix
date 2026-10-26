@@ -1,4 +1,4 @@
-﻿"""
+"""
 Helix engine package.
 
 Public modules:

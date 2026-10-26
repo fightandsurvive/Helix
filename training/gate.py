@@ -1,4 +1,4 @@
-﻿"""
+"""
 Stage 3a — SPRT gates and match recording.
 
 Plays Trinstinctus vs Stockfish (or any UCI engine), records every game
@@ -9,6 +9,7 @@ Opening classification happens here too — every eval.match gets an
 eco_code so analytics.participant_eco_stats can roll up engine games
 the same way it rolls up personal games.
 """
+
 from __future__ import annotations
 
 import argparse
@@ -70,7 +71,9 @@ def _result_for_participant(match_result: str, trin_was_white: bool, participant
     if match_result == "1/2-1/2" or match_result == "*":
         return "draw"
     white_won = match_result == "1-0"
-    participant_won = (white_won == trin_was_white) if participant == "trinstinctus" else (white_won != trin_was_white)
+    participant_won = (
+        (white_won == trin_was_white) if participant == "trinstinctus" else (white_won != trin_was_white)
+    )
     return "win" if participant_won else "loss"
 
 
@@ -83,9 +86,7 @@ def run_match(
     max_games: int = 400,
     time_s: float = 10.0,
 ) -> tuple[str, float]:
-    trin = chess.engine.SimpleEngine.popen_uci(
-        ["python", "-m", "engine.uci_engine", ckpt, "800"]
-    )
+    trin = chess.engine.SimpleEngine.popen_uci(["python", "-m", "engine.uci_engine", ckpt, "800"])
     ref = chess.engine.SimpleEngine.popen_uci(ref_cmd)
     if ref_opts:
         ref.configure(ref_opts)
@@ -107,7 +108,7 @@ def run_match(
     wins = losses = draws = 0
     limit = chess.engine.Limit(time=time_s)
     for i in tqdm(range(max_games)):
-        trin_white = (i % 2 == 0)
+        trin_white = i % 2 == 0
         board = chess.Board()
         w_engine, b_engine = (trin, ref) if trin_white else (ref, trin)
 
@@ -151,7 +152,12 @@ def run_match(
                     gate_name,
                     "trinstinctus" if trin_white else ref_name,
                     ref_name if trin_white else "trinstinctus",
-                    result, board.ply(), ckpt, eco, opening, str(board),
+                    result,
+                    board.ply(),
+                    ckpt,
+                    eco,
+                    opening,
+                    str(board),
                 ),
             )
             mid = cur.fetchone()[0]
@@ -182,9 +188,7 @@ def run_match(
                     participant = ref_name if trin_white else "trinstinctus"
                     opponent = "trinstinctus" if trin_white else ref_name
 
-                result_for_participant = _result_for_participant(
-                    result, trin_white, participant
-                )
+                result_for_participant = _result_for_participant(result, trin_white, participant)
                 cur.execute(
                     """
                     INSERT INTO analytics.gambit_plays
@@ -194,8 +198,13 @@ def run_match(
                     ON CONFLICT DO NOTHING
                     """,
                     (
-                        mid, participant, opponent, hit.side,
-                        hit.gambit_id, hit.depth, result_for_participant,
+                        mid,
+                        participant,
+                        opponent,
+                        hit.side,
+                        hit.gambit_id,
+                        hit.depth,
+                        result_for_participant,
                     ),
                 )
 
@@ -206,8 +215,7 @@ def run_match(
                     llr=%s, status=%s
                 WHERE sprint_id=%s
                 """,
-                (wins + losses + draws, wins, losses, draws,
-                 sprt.llr, sprt.status(), sprint_id),
+                (wins + losses + draws, wins, losses, draws, sprt.llr, sprt.status(), sprint_id),
             )
 
         if sprt.status() != "running":
@@ -215,7 +223,9 @@ def run_match(
                 "sprt_concluded",
                 status=sprt.status(),
                 games=wins + losses + draws,
-                wins=wins, losses=losses, draws=draws,
+                wins=wins,
+                losses=losses,
+                draws=draws,
             )
             break
 
@@ -242,8 +252,13 @@ def main():
         opts = {"Skill Level": args.ref_skill, "Threads": 4, "Hash": 4096}
 
     status, score = run_match(
-        args.gate, args.ckpt, args.ref, args.ref_name, opts,
-        args.max_games, args.time,
+        args.gate,
+        args.ckpt,
+        args.ref,
+        args.ref_name,
+        opts,
+        args.max_games,
+        args.time,
     )
     log.info("final_gate", status=status, score=round(score, 3))
 

@@ -1,4 +1,4 @@
-﻿"""
+"""
 Seed app.gambits from the Lichess opening database.
 
 Filter: only entries whose name contains "gambit". This yields ~600
@@ -7,6 +7,7 @@ gambits spanning all ECO codes. Soundness classification:
     - All others → 'speculative'
 Users can hand-curate soundness over time; the default is a heuristic.
 """
+
 from __future__ import annotations
 
 import requests

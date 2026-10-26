@@ -1,4 +1,4 @@
-﻿"""
+"""
 Import personal games from Chess.com or Lichess.
 
 Both platforms use public APIs (no auth required):
@@ -11,6 +11,7 @@ The full import flow:
     3. Inline gambit detection (insert into analytics.gambit_plays)
     4. Queue accuracy jobs (analytics.accuracy_jobs)
 """
+
 from __future__ import annotations
 
 import argparse
@@ -82,8 +83,7 @@ def _store_game(
     result_raw = h.get("Result", "*")
     if result_raw == "1/2-1/2":
         result = "draw"
-    elif (result_raw == "1-0" and user_color == "white") or \
-         (result_raw == "0-1" and user_color == "black"):
+    elif (result_raw == "1-0" and user_color == "white") or (result_raw == "0-1" and user_color == "black"):
         result = "win"
     else:
         result = "loss"
@@ -105,10 +105,20 @@ def _store_game(
             RETURNING game_id
             """,
             (
-                profile_id, platform, external_id, end_time or 0,
-                white, black, user_color,
-                user_rating, opp_rating, result, tc,
-                eco, opening, pgn_text,
+                profile_id,
+                platform,
+                external_id,
+                end_time or 0,
+                white,
+                black,
+                user_color,
+                user_rating,
+                opp_rating,
+                result,
+                tc,
+                eco,
+                opening,
+                pgn_text,
             ),
         )
         row = cur.fetchone()
@@ -132,8 +142,14 @@ def _store_game(
                 ON CONFLICT DO NOTHING
                 """,
                 (
-                    game_id, participant, opponent, user_color,
-                    hit.gambit_id, hit.depth, result, end_time or 0,
+                    game_id,
+                    participant,
+                    opponent,
+                    user_color,
+                    hit.gambit_id,
+                    hit.depth,
+                    result,
+                    end_time or 0,
                 ),
             )
 
@@ -153,7 +169,8 @@ def import_chesscom(username: str, profile_id: int, since_year: int = 2015) -> i
     gambit_index = load_gambit_index_from_db()
     r = requests.get(
         f"https://api.chess.com/pub/player/{username}/games/archives",
-        headers=UA, timeout=30,
+        headers=UA,
+        timeout=30,
     )
     r.raise_for_status()
     archives = r.json().get("archives", [])
@@ -174,10 +191,13 @@ def import_chesscom(username: str, profile_id: int, since_year: int = 2015) -> i
             if not pgn_text:
                 continue
             n += _store_game(
-                profile_id, "chesscom",
+                profile_id,
+                "chesscom",
                 str(g.get("uuid", g.get("url", ""))),
-                pgn_text, username,
-                g.get("end_time"), g.get("time_class"),
+                pgn_text,
+                username,
+                g.get("end_time"),
+                g.get("time_class"),
                 gambit_index,
             )
         time.sleep(0.1)  # polite to the API
@@ -196,7 +216,8 @@ def import_lichess(username: str, profile_id: int, max_games: int = 5000) -> int
             "opening": "true",
             "accuracy": "false",
         },
-        stream=True, timeout=60,
+        stream=True,
+        timeout=60,
     )
     r.raise_for_status()
 
@@ -212,9 +233,11 @@ def import_lichess(username: str, profile_id: int, max_games: int = 5000) -> int
         if not pgn_text:
             continue
         n += _store_game(
-            profile_id, "lichess",
+            profile_id,
+            "lichess",
             game.get("id", ""),
-            pgn_text, username,
+            pgn_text,
+            username,
             game.get("createdAt", 0) // 1000,
             game.get("speed"),
             gambit_index,

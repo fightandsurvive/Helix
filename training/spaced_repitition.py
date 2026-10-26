@@ -1,13 +1,14 @@
-﻿"""
+"""
 SM-2 algorithm — used by both opening study and puzzle scheduling.
 
 Duplicated in Rust (app/src-tauri/src/training_tools.rs) so both Python
 and Rust produce identical scheduling. Any change here must be mirrored
 there — the Rust side is what the UI actually calls.
 """
+
 from __future__ import annotations
 
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 
 
 def update_sm2(ef: float, interval: int, reps: int, quality: int) -> tuple[float, int, int]:
@@ -32,4 +33,4 @@ def update_sm2(ef: float, interval: int, reps: int, quality: int) -> tuple[float
 
 
 def next_due(interval_days: int) -> datetime:
-    return datetime.now(timezone.utc) + timedelta(days=interval_days)
+    return datetime.now(UTC) + timedelta(days=interval_days)

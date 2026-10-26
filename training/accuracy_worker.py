@@ -1,4 +1,4 @@
-﻿"""
+"""
 Async accuracy worker.
 
 Consumes analytics.accuracy_jobs and writes per-participant accuracy +
@@ -10,6 +10,7 @@ final), not 2N. The eval at position i is from side-to-move's perspective;
 at position i+1 it's from the opponent's. Converting: loss = e_i + e_{i+1}_opp.
 Halves the SF cost of accuracy computation.
 """
+
 from __future__ import annotations
 
 import math
@@ -174,28 +175,30 @@ def _evaluate(moves, engine, depth):
         after_board = positions[i + 1] if i + 1 < len(positions) else positions[i]
         white_eval_cp = e_next_mover if color == "white" else -e_next_mover
 
-        move_details.append({
-            "ply_number": i + 1,
-            "move_san": san,
-            "fen_before": fen_before,
-            "fen_after": after_board.fen(),
-            "eval_before_cp": e_i,
-            "eval_after_cp": e_next_mover,
-            "loss_cp": int(loss),
-            "phase": phase,
-            "piece_moved": piece.symbol().upper(),
-            "to_square": chess.square_name(move_obj.to_square),
-            "board_region": region,
-            "color_played": color,
-            "white_eval_cp": white_eval_cp,
-        })
+        move_details.append(
+            {
+                "ply_number": i + 1,
+                "move_san": san,
+                "fen_before": fen_before,
+                "fen_after": after_board.fen(),
+                "eval_before_cp": e_i,
+                "eval_after_cp": e_next_mover,
+                "loss_cp": int(loss),
+                "phase": phase,
+                "piece_moved": piece.symbol().upper(),
+                "to_square": chess.square_name(move_obj.to_square),
+                "board_region": region,
+                "color_played": color,
+                "white_eval_cp": white_eval_cp,
+            }
+        )
 
     out = {}
     for color, ls in losses.items():
         if not ls:
             continue
         acpl = sum(ls) / len(ls)
-        accs = [max(0.0, min(100.0, 103.1668 * math.exp(-0.04354 * l) - 3.1669)) for l in ls]
+        accs = [max(0.0, min(100.0, 103.1668 * math.exp(-0.04354 * loss) - 3.1669)) for loss in ls]
         accuracy = sum(accs) / len(accs)
         out[color] = (round(accuracy, 2), round(acpl, 1), len(ls))
 
@@ -262,17 +265,35 @@ def _process_job(job_id, source, ref_id):
                         (game_id, ply_number, move_san, fen_before, eval_before_cp,
                          eval_after_cp, loss_cp, phase, piece_moved, to_square, board_region)
                        VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)""",
-                    [(ref_id, d["ply_number"], d["move_san"], d["fen_before"],
-                      d["eval_before_cp"], d["eval_after_cp"], d["loss_cp"],
-                      d["phase"], d["piece_moved"], d["to_square"], d["board_region"])
-                     for d in user_moves],
+                    [
+                        (
+                            ref_id,
+                            d["ply_number"],
+                            d["move_san"],
+                            d["fen_before"],
+                            d["eval_before_cp"],
+                            d["eval_after_cp"],
+                            d["loss_cp"],
+                            d["phase"],
+                            d["piece_moved"],
+                            d["to_square"],
+                            d["board_region"],
+                        )
+                        for d in user_moves
+                    ],
                     page_size=200,
                 )
 
             curve_rows = [
-                (ref_id, d["ply_number"], d["move_san"], d["fen_after"],
-                 d["white_eval_cp"], d["color_played"] == user_color,
-                 d["loss_cp"] if d["color_played"] == user_color else None)
+                (
+                    ref_id,
+                    d["ply_number"],
+                    d["move_san"],
+                    d["fen_after"],
+                    d["white_eval_cp"],
+                    d["color_played"] == user_color,
+                    d["loss_cp"] if d["color_played"] == user_color else None,
+                )
                 for d in move_details
             ]
             if curve_rows:
@@ -287,6 +308,7 @@ def _process_job(job_id, source, ref_id):
                 )
 
     _mark_done(job_id)
+
 
 def main():
     log.info("accuracy_worker_started")

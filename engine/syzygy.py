@@ -1,4 +1,4 @@
-﻿"""
+"""
 Syzygy endgame tablebase integration.
 
 Probes at every MCTS node with piece_count <= max_probe_pieces, where
@@ -23,6 +23,7 @@ per root search. In the panel service, probes are similarly serialized.
 If you ever want threaded MCTS, the mutex becomes the bottleneck — at
 that point, open one Tablebase per worker thread.
 """
+
 from __future__ import annotations
 
 import threading
@@ -54,10 +55,7 @@ def init_tablebases() -> None:
 
     paths = [p for p in [root / "3-4-5", root / "6", root / "7"] if p.exists()]
     if not paths:
-        raise FileNotFoundError(
-            f"No syzygy subdirectories under {root}. "
-            f"Expected one of: 3-4-5/, 6/, 7/"
-        )
+        raise FileNotFoundError(f"No syzygy subdirectories under {root}. " f"Expected one of: 3-4-5/, 6/, 7/")
 
     _tb = chess.syzygy.open_tablebase(str(paths[0]))
     for extra in paths[1:]:
