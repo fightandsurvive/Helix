@@ -23,6 +23,7 @@ import argparse
 import hashlib
 import sys
 from pathlib import Path
+import argparse
 
 _REPO_ROOT = Path(__file__).resolve().parent.parent
 if str(_REPO_ROOT) not in sys.path:
@@ -127,6 +128,10 @@ def main() -> int:
                     help="Update hash for one specific migration.")
     ap.add_argument("--force-reapply", metavar="NAME",
                     help="Delete the record so this migration re-runs next time.")
+    ap.add_argument("--mark-applied", metavar="NAME",
+                    help="Record this migration as applied with its current hash, "
+                         "WITHOUT running the SQL. Use when you applied the SQL "
+                         "manually (e.g. via psql) and want the runner to skip it.")
     args = ap.parse_args()
 
     migration_dir = Path(__file__).parent
@@ -144,18 +149,31 @@ def main() -> int:
             if args.resync or args.resync_file:
                 target = args.resync_file
                 n = _resync(conn, files, target)
-                log.info("resync_done", updated=n,
-                         message="Hashes updated without re-applying. If any "
-                                 "of these had meaningful SQL changes (not "
-                                 "just line endings), the schema may be stale "
-                                 "— verify with psql \\d on affected tables.")
+                log.info("resync_done", updated=n)
                 return 0
 
             if args.force_reapply:
                 if not _force_reapply(conn, args.force_reapply):
                     return 1
-                log.info("force_reapply_done",
-                         message="Run migrations again to re-apply.")
+                log.info("force_reapply_done")
+                return 0
+
+            if args.mark_applied:
+                target_file = next((f for f in files if f.name == args.mark_applied), None)
+                if target_file is None:
+                    log.error("mark_applied_not_found", file=args.mark_applied)
+                    return 1
+                sha = hashlib.sha256(_read_sql(target_file).encode("utf-8")).hexdigest()
+                with conn.cursor() as cur:
+                    cur.execute(
+                        "INSERT INTO public._migrations (filename, sha256) "
+                        "VALUES (%s, %s) "
+                        "ON CONFLICT (filename) DO UPDATE SET sha256 = EXCLUDED.sha256",
+                        (target_file.name, sha),
+                    )
+                conn.commit()
+                log.info("marked_applied", file=target_file.name, sha_prefix=sha[:12],
+                         message="Runner will skip this migration; SQL was NOT executed.")
                 return 0
 
             # ── Normal apply mode ───────────────────────────────────
@@ -170,12 +188,12 @@ def main() -> int:
                         log.error(
                             "migration_modified",
                             file=f.name,
-                            hint=f"If this is only line-ending/encoding "
-                                 f"normalization, run: python migrations/run_migrations.py "
-                                 f"--resync-file {f.name}. If the SQL content "
-                                 f"changed meaningfully, review the schema and "
-                                 f"use --force-reapply {f.name} only if the "
-                                 f"migration is idempotent.",
+                            hint=f"If content change is only line endings/BOM: "
+                                 f"python migrations/run_migrations.py --resync-file {f.name}. "
+                                 f"If applied manually outside the runner: "
+                                 f"python migrations/run_migrations.py --mark-applied {f.name}. "
+                                 f"If you need to re-run the SQL (idempotent only): "
+                                 f"--force-reapply {f.name}.",
                         )
                         return 2
                     log.info("migration_skip", file=f.name)
@@ -196,7 +214,6 @@ def main() -> int:
                     log.exception("migration_failed", file=f.name, error=str(e))
                     return 3
 
-            # Verify schemas exist
             expected_schemas = (
                 "gm", "selfplay", "eval", "engine_state",
                 "ops", "app", "analytics",
@@ -218,7 +235,6 @@ def main() -> int:
         close_pool()
 
     return 0
-
 
 if __name__ == "__main__":
     sys.exit(main())
