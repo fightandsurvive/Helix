@@ -1101,3 +1101,65 @@
     gap: 8px;
     margin-top: 8px;
 }
+
+.coach-panel {
+    background: var(--panel);
+    border: 1px solid #262630;
+    border-radius: 8px;
+    padding: 16px;
+}
+
+.coach-persona-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 12px;
+    font-size: 12px;
+}
+
+    .coach-persona-row select {
+        flex: 1;
+        background: #1a1a20;
+        border: 1px solid #262630;
+        color: var(--text);
+        padding: 4px 8px;
+        border-radius: 4px;
+        font-size: 12px;
+    }
+
+.coach-refresh {
+    background: #262630;
+    border: none;
+    color: var(--text);
+    padding: 4px 10px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 12px;
+}
+
+.coach-pv {
+    padding: 6px 12px;
+    background: #14141a;
+    border-radius: 4px;
+    font-size: 11px;
+    font-family: "JetBrains Mono", monospace;
+    margin-bottom: 8px;
+}
+
+.coach-pv-label {
+    color: var(--muted);
+    margin-right: 8px;
+}
+
+.coach-pv-moves {
+    color: var(--text);
+}
+
+.import-status {
+    padding: 8px 12px;
+    border-radius: 4px;
+    font-size: 12px;
+    margin-bottom: 12px;
+    background: rgba(34, 211, 238, 0.08);
+    color: #22d3ee;
+}

@@ -12,6 +12,8 @@ This populates the opening trainer's deck. Runs once after eco_loader.
 
 from __future__ import annotations
 
+import hashlib
+
 import chess
 
 from common.db import read_cursor, transaction
@@ -51,7 +53,8 @@ def main():
             if not ok or not ucis:
                 continue
 
-            line_id = f"{eco}_{name.replace(' ', '_')[:60]}_{len(ucis)}ply"
+            pgn_hash = hashlib.md5(pgn.encode()).hexdigest()[:6]
+            line_id = f"{eco}_{name.replace(' ', '_')[:55]}_{len(ucis)}ply_{pgn_hash}"
             side = "white" if len(sans) % 2 == 1 else "black"
 
             cur.execute(

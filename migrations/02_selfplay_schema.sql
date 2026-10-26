@@ -1,17 +1,19 @@
 -- Migration 02 - Self-play storage.
 --
 -- Partitioned by generation because RL data goes stale. Training on
--- generation-30 data when the network is at generation-300 trains against
--- a policy that no longer exists - a silent form of overfitting.
+-- generation-30 data when the network is at generation-300 trains
+-- against a policy that no longer exists - a silent form of overfitting.
 --
--- Retention: 12 generations kept in full, generations 13-20 sampled to
--- 1% (regression test corpus), 21+ dropped entirely. Enforced by
--- selfplay.prune_old_generations called from the orchestrator.
+-- All CREATE TABLE and CREATE INDEX use IF NOT EXISTS so this migration
+-- is idempotent. Re-applying it on a database where the tables already
+-- exist is a no-op (functions use CREATE OR REPLACE, schemas use IF NOT
+-- EXISTS). This matters because the migration runner can be forced to
+-- re-apply a migration when its SHA256 hash changes (e.g., BOM strip).
 
 CREATE SCHEMA IF NOT EXISTS selfplay;
 
 -- Games (one row per completed self-play game)
-CREATE TABLE selfplay.games (
+CREATE TABLE IF NOT EXISTS selfplay.games (
     generation      INTEGER NOT NULL,
     game_id         BIGINT  NOT NULL,
     engine_version  TEXT    NOT NULL,
@@ -23,10 +25,7 @@ CREATE TABLE selfplay.games (
 ) PARTITION BY LIST (generation);
 
 -- Positions (training samples, one row per ply)
--- policy_target is a 4672-element FLOAT4 array - the MCTS visit distribution.
--- value_net is the network's own prediction at play time (used to compute
--- value_residual, which drives prioritized training).
-CREATE TABLE selfplay.positions (
+CREATE TABLE IF NOT EXISTS selfplay.positions (
     generation      INTEGER NOT NULL,
     position_id     BIGINT  NOT NULL,
     game_id         BIGINT  NOT NULL,
@@ -42,9 +41,8 @@ CREATE TABLE selfplay.positions (
     PRIMARY KEY (generation, position_id)
 ) PARTITION BY LIST (generation);
 
--- Regression corpus - 1% sample retained from pruned generations so we
--- can measure whether newer models regress on older data.
-CREATE TABLE selfplay.positions_regression (LIKE selfplay.positions INCLUDING ALL);
+CREATE TABLE IF NOT EXISTS selfplay.positions_regression
+    (LIKE selfplay.positions INCLUDING ALL);
 
 -- Partition factory - called from training/train_rl.py at the start of
 -- every generation.

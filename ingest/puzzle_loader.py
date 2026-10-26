@@ -11,6 +11,8 @@ import argparse
 import csv
 import os
 import subprocess
+import tempfile
+from pathlib import Path
 
 import chess
 import chess.engine
@@ -28,7 +30,8 @@ log = get_logger(__name__)
 
 def load_lichess():
     url = "https://database.lichess.org/lichess_db_puzzle.csv.zst"
-    local = "/tmp/lichess_puzzles.csv.zst"
+    _tmp = Path(tempfile.gettempdir())
+    local = str(_tmp / "lichess_puzzles.csv.zst")
     if not os.path.exists(local):
         log.info("downloading_lichess_puzzles")
         r = requests.get(url, stream=True, timeout=600)
@@ -37,7 +40,7 @@ def load_lichess():
             for chunk in r.iter_content(1 << 20):
                 f.write(chunk)
 
-    tsv = "/tmp/lichess_puzzles.csv"
+    tsv = str(_tmp / "lichess_puzzles.csv")
     subprocess.run(["zstd", "-d", "-f", local, "-o", tsv], check=True)
 
     n = 0
@@ -163,11 +166,16 @@ def load_gm_derived(max_puzzles: int = 5000):
 
 
 if __name__ == "__main__":
-    ap = argparse.ArgumentParser()
-    ap.add_argument("--source", choices=["lichess", "gm_derived"], required=True)
-    ap.add_argument("--max-games", type=int, default=5000)
-    args = ap.parse_args()
-    if args.source == "lichess":
-        load_lichess()
-    else:
-        load_gm_derived(args.max_games)
+    try:
+        ap = argparse.ArgumentParser()
+        ap.add_argument("--source", choices=["lichess", "gm_derived"], required=True)
+        ap.add_argument("--max-games", type=int, default=5000)
+        args = ap.parse_args()
+        if args.source == "lichess":
+            load_lichess()
+        else:
+            load_gm_derived(args.max_games)
+    finally:
+        from common.db import close_pool
+
+        close_pool()

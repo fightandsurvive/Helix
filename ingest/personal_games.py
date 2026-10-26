@@ -219,8 +219,13 @@ def import_lichess(username: str, profile_id: int, max_games: int = 5000) -> int
         stream=True,
         timeout=60,
     )
+    if r.status_code == 404:
+        raise SystemExit(
+            f"User '{username}' not found on Lichess. "
+            f"Check the spelling — Lichess usernames are case-sensitive.\n"
+            f"Test the URL in a browser: https://lichess.org/@/{username}"
+        )
     r.raise_for_status()
-
     n = 0
     for line in r.iter_lines():
         if not line:

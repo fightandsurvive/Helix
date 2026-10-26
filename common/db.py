@@ -12,14 +12,15 @@ Why psycopg3 over psycopg2:
 - FEN MD5 lookups return UUID directly without parsing
 
 Two public contexts:
-    `transaction()` — write, commits on clean exit, rolls back on error
-    `read_cursor()` — read, discards any accidental writes
+    transaction()  — write, commits on clean exit, rolls back on error
+    read_cursor()  — read, discards any accidental writes
 
 Both are context managers so `with transaction() as cur:` works naturally.
 """
 
 from __future__ import annotations
 
+import atexit
 from collections.abc import Iterator
 from contextlib import contextmanager
 
@@ -52,8 +53,6 @@ def get_pool() -> ConnectionPool:
             min_size=settings.db_pool_min,
             max_size=settings.db_pool_max,
             timeout=30,
-            # Health check on checkout — catches stale connections after
-            # DB restart without needing an explicit reconnect loop.
             check=ConnectionPool.check_connection,
         )
         log.info(
@@ -73,10 +72,6 @@ def transaction() -> Iterator[Cursor]:
     Usage:
         with transaction() as cur:
             cur.execute("INSERT ...", (a, b, c))
-
-    The `with get_pool().connection() as conn:` context in psycopg3 commits
-    on clean exit and rolls back on exception automatically — we don't
-    call commit() explicitly.
     """
     with get_pool().connection() as conn:
         with conn.cursor() as cur:
@@ -87,8 +82,7 @@ def transaction() -> Iterator[Cursor]:
 def read_cursor() -> Iterator[Cursor]:
     """
     Yields a read-only cursor. Rolls back at exit to discard any
-    accidental writes (defense in depth — reads shouldn't write, but if
-    a caller passes an INSERT to read_cursor, the write won't stick).
+    accidental writes.
 
     Usage:
         with read_cursor() as cur:
@@ -121,6 +115,18 @@ def close_pool() -> None:
     """
     global _pool
     if _pool is not None:
-        _pool.close()
-        _pool = None
-        log.info("db_pool_closed")
+        try:
+            _pool.close()
+        except Exception as e:
+            log.warning("db_pool_close_failed", error=str(e))
+        finally:
+            _pool = None
+            log.info("db_pool_closed")
+
+
+# Register close_pool to run on interpreter exit. Prevents the
+# "couldn't stop thread ... within 5.0 seconds" warnings that
+# psycopg_pool produces on ungraceful termination.
+#
+# This MUST be at the bottom of the file, after close_pool is defined.
+atexit.register(close_pool)

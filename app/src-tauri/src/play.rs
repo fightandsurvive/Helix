@@ -106,6 +106,7 @@ pub async fn sf_play_move(
         h.stdin.flush().map_err(|e| e.to_string())?;
 
         // Read until bestmove
+        #[allow(unused_assignments)]
         let mut best_uci = String::new();
         let mut last_eval = 0i32;
         loop {
@@ -195,4 +196,14 @@ pub async fn save_played_game(
     .await?;
 
     Ok(row.0)
+}
+
+/// Called on app shutdown — kills the Stockfish subprocess cleanly.
+pub fn shutdown() {
+    if let Ok(mut guard) = SF.lock() {
+        if let Some(mut h) = guard.take() {
+            let _ = h.child.kill();
+            let _ = h.child.wait();
+        }
+    }
 }
