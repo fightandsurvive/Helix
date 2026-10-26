@@ -1,0 +1,31 @@
+﻿# ── ML core ──────────────────────────────────────────────────────
+# torch 2.14 ships NVGEMM with CUTLASS-SM100 kernels — required for
+# NVFP4 GEMM support through Inductor on Blackwell.
+torch==2.14.0
+# torchao 0.18 is the first stable release with NVFP4 dense-linear
+# training (prototype API). Earlier versions do not support SM100.
+torchao==0.18.0
+numpy==2.5.2
+
+# ── Chess ────────────────────────────────────────────────────────
+python-chess==1.11.2
+
+# ── Data & DB ────────────────────────────────────────────────────
+# psycopg3 (not psycopg2) — async support matters for the accuracy
+# worker and the training orchestrator's concurrent stages.
+psycopg[binary,pool]==3.2.3
+pydantic==2.9.2
+pydantic-settings==2.6.1
+
+# ── Observability & ops ──────────────────────────────────────────
+structlog==24.4.0
+tqdm==4.66.5
+pyyaml==6.0.2
+requests==2.32.3
+tenacity==9.0.0
+tensorboard==2.18.0
+
+# ── Dev / test ───────────────────────────────────────────────────
+pytest==8.3.3
+ruff==0.7.3
+mypy==1.13.0

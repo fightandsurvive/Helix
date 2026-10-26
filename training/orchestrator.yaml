@@ -1,0 +1,25 @@
+﻿max_generations: 200
+games_per_generation: 3000
+sims_per_move: 400
+use_gumbel: false                 # SPRT-verify Gumbel before enabling
+retrain_adapters_every: 5
+
+sprt:
+  ref_skill: 10
+  max_games: 400
+  elo0: 0.0
+  elo1: 5.0
+  alpha: 0.05
+  beta: 0.05
+
+freeze:
+  # Freeze the base when ANY of these triggers fires.
+  sprt_rejects_threshold: 3       # 3 consecutive h0_accepted
+  plateau_window: 5               # Elo window in generations
+  plateau_elo_threshold: 15.0     # if Elo advanced <15 over window, freeze
+  elo_target: 3500.0              # absolute target — freeze on hit
+
+prune:
+  after_generations: 12
+  keep_full: 12
+  keep_sampled: 20

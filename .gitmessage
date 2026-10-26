@@ -1,0 +1,19 @@
+﻿# <type>(<scope>): <subject>
+#  |         |         |
+#  |         |         +-- brief description (≤72 chars, imperative, no period)
+#  |         +------------- subsystem (engine, db, training, ingest, app, tauri, infra, docs, deps, security)
+#  +----------------------- type: feat | fix | refactor | test | docs | chore | perf | ci | build | style
+#
+# Body (optional): explain *why*, not *what*. The diff shows what.
+# Blank line between subject and body.
+#
+# Footer (optional): BREAKING CHANGE, Refs #issue, Co-authored-by
+
+feat(engine): add Gumbel-AlphaZero root selection
+
+Replaces PUCT root selection with Gumbel top-k sampling and sequential
+halving. Measurably reduces the number of simulations needed to reach
+equivalent policy quality at 400–800 sims (Danihelka et al., ICLR 2022).
+
+Gated behind MCTS(use_gumbel=True); default remains PUCT until SPRT
+confirms improvement.

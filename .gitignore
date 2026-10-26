@@ -1,0 +1,94 @@
+﻿# ══════════════════════════════════════════════════════════════════════
+# Helix — ignore rules
+# Rule: >10MB, generated, or secret → here. No exceptions.
+# ══════════════════════════════════════════════════════════════════════
+
+# Python
+.venv/
+venv/
+.vs/
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+build/
+dist/
+*.egg-info/
+.eggs/
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+
+# Secrets
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+secrets/
+
+# Model checkpoints (large binaries — tracked in DB, not git)
+checkpoints/
+!checkpoints/.gitkeep
+*.pt
+*.pth
+*.safetensors
+*.ckpt
+*.bin
+*.onnx
+*.engine
+
+# Training artifacts
+logs/
+runs/
+tensorboard/
+wandb/
+lightning_logs/
+*.log
+
+# Data corpora
+data/
+datasets/
+pgn/
+*.pgn
+*.pgn.gz
+*.pgn.zst
+!data/manifests/
+!data/manifests/**/*.json
+
+# Syzygy tablebases (149GB+ for 6-piece)
+syzygy/
+*.rtbw
+*.rtbz
+*.rtbm
+
+# Database dumps (schema lives in migrations/)
+*.dump
+*.sql.gz
+*.sql.bak
+
+# Stockfish binary (downloaded per-machine)
+stockfish*
+/bin/
+
+# Node / Tauri
+node_modules/
+dist/
+dist-ssr/
+target/
+*.local
+.vite/
+
+# IDE / OS
+.vscode/*
+!.vscode/settings.json.example
+.idea/
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
+
+# AI assistants
+.claude/
+.cursor/
+.aider*

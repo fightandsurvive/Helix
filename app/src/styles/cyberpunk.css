@@ -1,0 +1,198 @@
+﻿:root {
+    --bg: #0f0f11;
+    --panel: #17171c;
+    --accent: #22d3ee;
+    --accent2: #a855f7;
+    --text: #e5e7eb;
+    --muted: #6b7280;
+    --danger: #f87171;
+    --success: #86efac;
+    --warning: #fbbf24;
+}
+
+* {
+    box-sizing: border-box;
+    margin: 0;
+}
+
+body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: "Inter", system-ui, sans-serif;
+    -webkit-font-smoothing: antialiased;
+}
+
+.app-shell {
+    min-height: 100vh;
+}
+
+.top-bar {
+    padding: 12px 24px;
+    border-bottom: 1px solid #222;
+    display: flex;
+    align-items: baseline;
+    gap: 16px;
+}
+
+.brand {
+    font-family: "JetBrains Mono", monospace;
+    font-size: 28px;
+    letter-spacing: 6px;
+    background: linear-gradient(90deg, var(--accent), var(--accent2));
+    -webkit-background-clip: text;
+    color: transparent;
+}
+
+.subtitle {
+    color: var(--muted);
+    font-size: 13px;
+}
+
+.top-tabs {
+    display: flex;
+    gap: 4px;
+    margin-left: auto;
+}
+
+.tab {
+    background: transparent;
+    border: 1px solid #262630;
+    color: var(--muted);
+    padding: 6px 14px;
+    border-radius: 4px;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    cursor: pointer;
+    transition: all 0.15s;
+}
+
+    .tab.active {
+        background: rgba(34, 211, 238, 0.15);
+        color: var(--accent);
+        border-color: var(--accent);
+    }
+
+.main-grid {
+    display: grid;
+    grid-template-columns: 340px 1fr 380px;
+    gap: 20px;
+    padding: 20px;
+}
+
+    .main-grid.single-center {
+        grid-template-columns: 1fr;
+        max-width: 900px;
+        margin: 0 auto;
+    }
+
+.left-panel, .right-panel {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.board-area {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 20px;
+}
+
+.opening-explorer, .style-dashboard, .arena, .legends-panel, .god-mode-panel,
+.training-monitor, .opening-trainer, .puzzle-trainer, .games-analytics,
+.analysis-controls {
+    background: var(--panel);
+    border: 1px solid #262630;
+    border-radius: 8px;
+    padding: 16px;
+    box-shadow: 0 0 20px rgba(34, 211, 238, 0.05);
+}
+
+h3 {
+    font-size: 12px;
+    letter-spacing: 2px;
+    color: var(--accent);
+    text-transform: uppercase;
+    margin-bottom: 12px;
+}
+
+.loading, .error, .empty {
+    font-size: 12px;
+    padding: 8px;
+    border-radius: 4px;
+}
+
+.error {
+    background: rgba(248, 113, 113, 0.1);
+    color: var(--danger);
+}
+
+.empty {
+    color: var(--muted);
+    text-align: center;
+}
+
+.capability-locked {
+    background: var(--panel);
+    border: 1px dashed #3f3f46;
+    border-radius: 8px;
+    padding: 24px;
+    text-align: center;
+    opacity: 0.75;
+}
+
+.cap-lock {
+    font-size: 32px;
+    color: #52525b;
+    margin-bottom: 8px;
+}
+
+.cap-title {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--muted);
+    margin-bottom: 6px;
+}
+
+.cap-reason {
+    font-size: 11px;
+    color: #52525b;
+    font-family: "JetBrains Mono", monospace;
+    line-height: 1.5;
+}
+
+.cap-badge {
+    font-size: 10px;
+    color: var(--muted);
+    font-family: "JetBrains Mono", monospace;
+    padding: 4px 8px;
+    border: 1px solid #262630;
+    border-radius: 4px;
+    margin-left: auto;
+    margin-right: 12px;
+}
+
+.play-mode-toggle {
+    display: flex;
+    gap: 4px;
+    margin-bottom: 12px;
+}
+
+    .play-mode-toggle button {
+        background: transparent;
+        border: 1px solid #262630;
+        color: var(--muted);
+        padding: 6px 16px;
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 11px;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+    }
+
+        .play-mode-toggle button.active {
+            background: rgba(34, 211, 238, 0.15);
+            color: #22d3ee;
+            border-color: #22d3ee;
+        }

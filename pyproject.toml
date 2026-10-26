@@ -1,0 +1,31 @@
+[project]
+name = "helix"
+version = "0.1.0"
+description = "Neural MCTS chess engine and multi-voice coaching workstation"
+requires-python = ">=3.15"
+license = { text = "Proprietary" }
+authors = [{ name = "Helix" }]
+
+[tool.setuptools.packages.find]
+include = ["engine*", "training*", "ingest*", "config*", "common*", "analytics*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-v --tb=short"
+
+[tool.ruff]
+line-length = 110
+target-version = "py313"
+select = ["E", "F", "W", "I", "N", "UP", "B", "C4", "SIM", "RUF"]
+ignore = ["E501"]
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+
+[tool.mypy]
+python_version = "3.13"
+ignore_missing_imports = true
+warn_unused_ignores = false
+warn_redundant_casts = false
+check_untyped_defs = false

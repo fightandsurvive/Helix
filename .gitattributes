@@ -1,0 +1,44 @@
+# Normalize to LF everywhere. Windows tools (PowerShell, cmd) all
+# handle LF fine. The CRLF exception for *.ps1 was causing conflicts
+# with pre-commit's mixed-line-ending hook.
+* text=auto eol=lf
+
+# Text — all LF
+*.py       text eol=lf
+*.rs       text eol=lf
+*.ts       text eol=lf
+*.tsx      text eol=lf
+*.js       text eol=lf
+*.json     text eol=lf
+*.toml     text eol=lf
+*.yml      text eol=lf
+*.yaml     text eol=lf
+*.sql      text eol=lf
+*.md       text eol=lf
+*.sh       text eol=lf
+*.ps1      text eol=lf
+*.css      text eol=lf
+*.html     text eol=lf
+.gitignore     text eol=lf
+.gitattributes text eol=lf
+
+# Binary
+*.pt        binary
+*.pth       binary
+*.safetensors binary
+*.ckpt      binary
+*.onnx      binary
+*.bin       binary
+*.pgn       binary
+*.pgn.gz    binary
+*.rtbw      binary
+*.rtbz      binary
+*.png       binary
+*.jpg       binary
+*.ico       binary
+*.woff2     binary
+*.ttf       binary
+
+# LFS for adapters
+checkpoints/adapter_*.pt filter=lfs diff=lfs merge=lfs -text
+*.adapter.pt filter=lfs diff=lfs merge=lfs -text

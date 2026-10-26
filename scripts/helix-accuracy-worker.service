@@ -1,0 +1,18 @@
+﻿[Unit]
+Description=Helix Accuracy Worker
+After=postgresql.service
+Wants=postgresql.service
+
+[Service]
+Type=simple
+User=%i
+WorkingDirectory=/home/%i/helix
+EnvironmentFile=/home/%i/helix/.env
+ExecStart=/home/%i/helix/.venv/bin/python -m training.accuracy_worker
+Restart=on-failure
+RestartSec=30
+KillSignal=SIGTERM
+TimeoutStopSec=120
+
+[Install]
+WantedBy=default.target

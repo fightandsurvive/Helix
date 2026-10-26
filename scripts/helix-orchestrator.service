@@ -1,0 +1,19 @@
+﻿[Unit]
+Description=Helix Training Orchestrator
+After=postgresql.service
+Wants=postgresql.service
+
+[Service]
+Type=simple
+User=%i
+WorkingDirectory=/home/%i/helix
+EnvironmentFile=/home/%i/helix/.env
+Environment="CUDA_VISIBLE_DEVICES=1"
+ExecStart=/home/%i/helix/.venv/bin/python -m training.orchestrator --start-gen 1
+Restart=on-failure
+RestartSec=120
+KillSignal=SIGTERM
+TimeoutStopSec=300
+
+[Install]
+WantedBy=default.target
