@@ -1,4 +1,4 @@
-﻿//! Capability probe — runs `python -m config.capabilities` once at startup
+//! Capability probe — runs `python -m config.capabilities` once at startup
 //! and caches the JSON. Frontend reads it to decide what to render.
 
 use once_cell::sync::OnceCell;

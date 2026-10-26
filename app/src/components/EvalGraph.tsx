@@ -1,4 +1,4 @@
-﻿import { useInvoke } from "../hooks/useInvoke";
+import { useInvoke } from "../hooks/useInvoke";
 import { LineChart, Line, XAxis, YAxis, Tooltip, ReferenceLine, ResponsiveContainer } from "recharts";
 
 interface EvalPoint {

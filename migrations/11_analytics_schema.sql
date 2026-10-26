@@ -1,4 +1,4 @@
-﻿-- ══════════════════════════════════════════════════════════════════════
+-- ══════════════════════════════════════════════════════════════════════
 -- Migration 11 — Unified analytics (gambit plays + accuracy results).
 --
 -- Design: both sources (personal + eval) write to the SAME tables, keyed

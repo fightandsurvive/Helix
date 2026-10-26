@@ -1,4 +1,4 @@
-﻿//! Weakness Finder commands — query cached insights, trigger refreshes.
+//! Weakness Finder commands — query cached insights, trigger refreshes.
 
 use serde::Serialize;
 use std::process::Command;

@@ -1,4 +1,4 @@
-﻿-- ══════════════════════════════════════════════════════════════════════
+-- ══════════════════════════════════════════════════════════════════════
 -- Migration 06 — Nightly materialized view refreshes.
 --
 -- Uses pg_cron (installed via `CREATE EXTENSION pg_cron` in the setup
@@ -9,6 +9,7 @@
 -- pg_cron isn't installed — the app still works, views just don't
 -- refresh automatically. Manual refresh: SELECT analytics.refresh_views();
 -- ══════════════════════════════════════════════════════════════════════
+CREATE SCHEMA IF NOT EXISTS analytics;
 
 DO $$
 BEGIN

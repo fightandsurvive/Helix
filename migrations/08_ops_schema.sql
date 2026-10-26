@@ -1,4 +1,4 @@
-﻿-- ══════════════════════════════════════════════════════════════════════
+-- ══════════════════════════════════════════════════════════════════════
 -- Migration 08 — Operational telemetry.
 --
 -- Writes from training jobs are throttled to 1 Hz by the reporter

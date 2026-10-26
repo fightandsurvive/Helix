@@ -1,4 +1,4 @@
-﻿-- ══════════════════════════════════════════════════════════════════════
+-- ══════════════════════════════════════════════════════════════════════
 -- Migration 04 — Checkpoint lineage, config versions, style profiles.
 --
 -- Every checkpoint is recorded here with SHA256 and parent lineage.

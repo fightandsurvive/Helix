@@ -1,4 +1,4 @@
-﻿// SVG overlay drawn on top of the chessboard. Handles:
+// SVG overlay drawn on top of the chessboard. Handles:
 // - Right-click drag = draw arrow (color cycle: green/red/blue/yellow)
 // - Left-click square = highlight toggle
 // - Ctrl+click square = clear highlight

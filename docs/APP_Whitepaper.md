@@ -1,4 +1,4 @@
-﻿# Helix App — White Paper
+# Helix App — White Paper
 
 **Version 0.1** | The desktop application: seven-tab architecture, Legends
 panel, God Mode, personal game analytics, gambit tracking, and the security

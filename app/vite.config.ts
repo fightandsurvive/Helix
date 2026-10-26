@@ -1,4 +1,4 @@
-﻿import { defineConfig } from "vite";
+import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 
 // Tauri requires a fixed port and no clearScreen so the CLI can

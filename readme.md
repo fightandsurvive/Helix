@@ -1,4 +1,4 @@
-﻿## Helix
+## Helix
 
 A neural MCTS chess engine and multi-voice coaching workstation.
 Local-first, self-hosted, no cloud dependencies.

@@ -1,4 +1,4 @@
-﻿// app/src/hooks/useCapabilities.ts
+// app/src/hooks/useCapabilities.ts
 import { useInvoke } from "./useInvoke";
 
 export interface Capabilities {

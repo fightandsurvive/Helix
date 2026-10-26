@@ -1,4 +1,4 @@
-﻿-- ══════════════════════════════════════════════════════════════════════
+-- ══════════════════════════════════════════════════════════════════════
 -- Migration 05 — Opening explorer materialized views.
 --
 -- These aggregate per-position win rates from the GM warehouse. Refreshed

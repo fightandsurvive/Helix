@@ -1,7 +1,8 @@
-﻿-- ══════════════════════════════════════════════════════════════════════
+-- ══════════════════════════════════════════════════════════════════════
 -- Migration 07 — Annotations, position library, daily puzzle streaks.
 -- ══════════════════════════════════════════════════════════════════════
 
+CREATE SCHEMA IF NOT EXISTS app;
 -- Per-position annotations (arrows, highlights, comments).
 CREATE TABLE app.game_annotations (
     annotation_id BIGSERIAL PRIMARY KEY,

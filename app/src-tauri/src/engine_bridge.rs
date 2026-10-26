@@ -1,4 +1,4 @@
-﻿//! Engine bridge — style weights, adapter metadata.
+//! Engine bridge — style weights, adapter metadata.
 
 use serde::{Deserialize, Serialize};
 use tauri::State;

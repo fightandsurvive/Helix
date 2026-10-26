@@ -1,4 +1,4 @@
-﻿-- ══════════════════════════════════════════════════════════════════════
+-- ══════════════════════════════════════════════════════════════════════
 -- Migration 06 — Per-move loss storage and weakness insight cache.
 --
 -- Per-move losses are stored ONLY for personal games (app.personal_games).
@@ -32,13 +32,10 @@ CREATE TABLE analytics.move_losses (
 
 -- User's moves only (filtered at write time by user_color), so this
 -- covers every move the user made — no color filter needed downstream.
-CREATE INDEX ON analytics.move_losses (game_id);
-CREATE INDEX ON analytics.move_losses ((game_id, phase));
-
 -- Blunder-focused index — the most common query.
-CREATE INDEX ON analytics.move_losses ((game_id, loss_cp))
-    WHERE loss_cp >= 100;
-
+CREATE INDEX ON analytics.move_losses (game_id);
+CREATE INDEX ON analytics.move_losses (game_id, phase);
+CREATE INDEX ON analytics.move_losses (game_id, loss_cp) WHERE loss_cp >= 100;
 -- Full eval curve per game (both colors, every ply) — powers the eval graph.
 CREATE TABLE analytics.game_eval_curve (
     game_id       BIGINT NOT NULL REFERENCES app.personal_games(game_id) ON DELETE CASCADE,

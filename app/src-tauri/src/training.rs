@@ -1,4 +1,4 @@
-﻿//! Training telemetry — what the app polls every 2s.
+//! Training telemetry — what the app polls every 2s.
 
 use chrono::{DateTime, Utc};
 use serde::Serialize;

@@ -1,4 +1,4 @@
-﻿import { useInvoke } from "../hooks/useInvoke";
+import { useInvoke } from "../hooks/useInvoke";
 
 interface LegendRow {
   legend: string;

@@ -1,4 +1,4 @@
-﻿//! Application initialization — tracing, DB pool, command registration.
+//! Application initialization — tracing, DB pool, command registration.
 
 mod analytics;
 mod annotations;

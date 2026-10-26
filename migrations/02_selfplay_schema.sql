@@ -1,18 +1,16 @@
-﻿-- ══════════════════════════════════════════════════════════════════════
--- Migration 02 — Self-play storage.
+-- Migration 02 - Self-play storage.
 --
 -- Partitioned by generation because RL data goes stale. Training on
 -- generation-30 data when the network is at generation-300 trains against
--- a policy that no longer exists — a silent form of overfitting.
+-- a policy that no longer exists - a silent form of overfitting.
 --
 -- Retention: 12 generations kept in full, generations 13-20 sampled to
 -- 1% (regression test corpus), 21+ dropped entirely. Enforced by
--- `selfplay.prune_old_generations` called from the orchestrator.
--- ══════════════════════════════════════════════════════════════════════
+-- selfplay.prune_old_generations called from the orchestrator.
 
 CREATE SCHEMA IF NOT EXISTS selfplay;
 
--- ── Games (one row per completed self-play game) ────────────────────
+-- Games (one row per completed self-play game)
 CREATE TABLE selfplay.games (
     generation      INTEGER NOT NULL,
     game_id         BIGINT  NOT NULL,
@@ -24,8 +22,8 @@ CREATE TABLE selfplay.games (
     PRIMARY KEY (generation, game_id)
 ) PARTITION BY LIST (generation);
 
--- ── Positions (training samples, one row per ply) ───────────────────
--- policy_target is a 4672-element REAL array — the MCTS visit distribution.
+-- Positions (training samples, one row per ply)
+-- policy_target is a 4672-element FLOAT4 array - the MCTS visit distribution.
 -- value_net is the network's own prediction at play time (used to compute
 -- value_residual, which drives prioritized training).
 CREATE TABLE selfplay.positions (
@@ -35,7 +33,7 @@ CREATE TABLE selfplay.positions (
     ply_number      SMALLINT NOT NULL,
     fen_string      TEXT    NOT NULL,
     fen_md5         UUID    GENERATED ALWAYS AS (md5(fen_string)::uuid) STORED,
-    policy_target BYTEA NOT NULL  -- 4672 × 2 bytes = 9.3 KB per position
+    policy_target   FLOAT4[] NOT NULL,
     value_target    REAL    NOT NULL,
     value_net       REAL,
     stockfish_eval  REAL,
@@ -44,12 +42,12 @@ CREATE TABLE selfplay.positions (
     PRIMARY KEY (generation, position_id)
 ) PARTITION BY LIST (generation);
 
--- Regression corpus — 1% sample retained from pruned generations so we
+-- Regression corpus - 1% sample retained from pruned generations so we
 -- can measure whether newer models regress on older data.
 CREATE TABLE selfplay.positions_regression (LIKE selfplay.positions INCLUDING ALL);
 
--- ── Partition factory ───────────────────────────────────────────────
--- Called from training/train_rl.py at the start of every generation.
+-- Partition factory - called from training/train_rl.py at the start of
+-- every generation.
 CREATE OR REPLACE FUNCTION selfplay.create_generation_partition(gen INTEGER)
 RETURNS VOID
 LANGUAGE plpgsql AS $$
@@ -73,9 +71,8 @@ BEGIN
 END;
 $$;
 
--- ── Retention ───────────────────────────────────────────────────────
--- Samples old partitions to positions_regression, then drops them.
--- Idempotent — safe to run repeatedly.
+-- Retention - samples old partitions to positions_regression, then drops
+-- them. Idempotent, safe to run repeatedly.
 CREATE OR REPLACE FUNCTION selfplay.prune_old_generations(
     current_gen INTEGER,
     keep_full   INT DEFAULT 12,

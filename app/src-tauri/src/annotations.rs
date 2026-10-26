@@ -1,4 +1,4 @@
-﻿//! Board annotations — per-game, per-ply arrows, highlights, comments.
+//! Board annotations — per-game, per-ply arrows, highlights, comments.
 
 use serde::{Deserialize, Serialize};
 use tauri::State;

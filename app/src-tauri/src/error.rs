@@ -1,4 +1,4 @@
-﻿//! Typed error surface — serializes to structured JSON for the frontend.
+//! Typed error surface — serializes to structured JSON for the frontend.
 
 use serde::Serialize;
 use thiserror::Error;

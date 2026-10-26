@@ -1,4 +1,4 @@
-﻿//! Local play vs Stockfish.
+//! Local play vs Stockfish.
 //!
 //! Persistent SF subprocess with mutex-guarded UCI communication. Each
 //! game keeps its own skill level + time control; on game end, the PGN

@@ -1,4 +1,4 @@
-﻿# Helix Project — Continuation Context
+# Helix Project — Continuation Context
 
 I am continuing a large project from a previous chat. This document is the
 complete context. Read it fully before responding. Do not ask clarifying

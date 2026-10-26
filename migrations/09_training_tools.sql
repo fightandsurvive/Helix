@@ -1,4 +1,4 @@
-﻿-- ══════════════════════════════════════════════════════════════════════
+-- ══════════════════════════════════════════════════════════════════════
 -- Migration 09 — Opening study and puzzle training tools.
 --
 -- Both use SM-2 spaced repetition (supervisor: training/spaced_repetition.py

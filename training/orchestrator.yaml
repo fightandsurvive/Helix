@@ -1,4 +1,4 @@
-﻿max_generations: 200
+max_generations: 200
 games_per_generation: 3000
 sims_per_move: 400
 use_gumbel: false                 # SPRT-verify Gumbel before enabling

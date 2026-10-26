@@ -1,4 +1,4 @@
-﻿//! God Mode analysis — three candidate moves per position.
+//! God Mode analysis — three candidate moves per position.
 //!
 //! Stockfish + brilliant candidates come from `engine/god_mode_helper.py`
 //! (spawned as subprocess per call, ~600ms total including SF).

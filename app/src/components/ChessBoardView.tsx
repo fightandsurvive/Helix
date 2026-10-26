@@ -1,4 +1,4 @@
-﻿import { Chessboard } from "react-chessboard";
+import { Chessboard } from "react-chessboard";
 import { Chess } from "chess.js";
 import { useEffect, useRef, useState } from "react";
 import { AnnotationLayer, Arrow, Highlight } from "./AnnotationLayer";

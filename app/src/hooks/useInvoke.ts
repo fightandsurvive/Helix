@@ -1,4 +1,4 @@
-﻿// Unified Tauri command wrapper.
+// Unified Tauri command wrapper.
 // Every component uses this hook, so error handling, loading state, and
 // logging are uniform across the app. Without it, each component would
 // reinvent try/catch patterns and forgetting one call would crash the UI.

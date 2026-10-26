@@ -1,4 +1,4 @@
-﻿// app/src/components/Capability.tsx
+// app/src/components/Capability.tsx
 // Renders children if enabled, otherwise a locked card with actionable guidance.
 // Never shows a dead button — the lock state explains exactly what to do.
 

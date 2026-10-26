@@ -1,4 +1,4 @@
-﻿//! Opening study and puzzle training commands.
+//! Opening study and puzzle training commands.
 //!
 //! SM-2 scheduling must match training/spaced_repetition.py bit-for-bit
 //! so a line reviewed from the CLI keeps its schedule when reviewed in

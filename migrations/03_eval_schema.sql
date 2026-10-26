@@ -1,4 +1,4 @@
-﻿-- ══════════════════════════════════════════════════════════════════════
+-- ══════════════════════════════════════════════════════════════════════
 -- Migration 03 — Evaluation & SPRT records.
 --
 -- Records every SPRT-gated match (Trinstinctus vs Stockfish or vs Lc0),

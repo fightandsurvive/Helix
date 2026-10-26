@@ -1,4 +1,4 @@
-﻿//! Eval graph data — returns per-ply eval points + user-move markers.
+//! Eval graph data — returns per-ply eval points + user-move markers.
 
 use serde::Serialize;
 use tauri::State;

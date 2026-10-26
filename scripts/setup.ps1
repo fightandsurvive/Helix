@@ -1,4 +1,4 @@
-﻿# ══════════════════════════════════════════════════════════════════════
+# ══════════════════════════════════════════════════════════════════════
 # Helix setup — Windows 11 (app-only build)
 #
 # Installs: Python 3.15, PostgreSQL 18, Node.js LTS, Rust, Ollama,
@@ -34,7 +34,7 @@ Ensure-WingetPackage "Ollama.Ollama"
 $vsWhere = "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe"
 if (-not (Test-Path $vsWhere)) {
     Write-Host "  installing Visual Studio Build Tools (required for Tauri)"
-    winget install --id Microsoft.VisualStudio.2022.BuildTools --silent `
+    winget install --id Microsoft.VisualStudio.2026.BuildTools --silent `
         --accept-package-agreements --accept-source-agreements `
         --override "--quiet --wait --add Microsoft.VisualStudio.Workload.VCTools"
 }

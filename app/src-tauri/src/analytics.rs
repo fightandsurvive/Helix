@@ -1,4 +1,4 @@
-﻿//! Analytics commands — unified across personal + eval sources.
+//! Analytics commands — unified across personal + eval sources.
 
 use serde::Serialize;
 use tauri::State;

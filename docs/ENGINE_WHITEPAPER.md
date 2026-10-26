@@ -1,4 +1,4 @@
-﻿# Trinstinctus Engine — White Paper
+# Trinstinctus Engine — White Paper
 
 **Version 0.1** | The neural architecture, search algorithm, training pipeline,
 personality system, and honest Elo trajectory of the Trinstinctus chess engine.

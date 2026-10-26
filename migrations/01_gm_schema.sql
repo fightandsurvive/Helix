@@ -1,4 +1,4 @@
-﻿-- ══════════════════════════════════════════════════════════════════════
+-- ══════════════════════════════════════════════════════════════════════
 -- Migration 01 — GM warehouse initial schema.
 --
 -- This migration establishes the SCHEMA and the ECO dictionary. The games

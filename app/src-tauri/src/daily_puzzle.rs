@@ -1,4 +1,4 @@
-﻿//! Daily puzzle — deterministic by date, weighted to user's rating.
+//! Daily puzzle — deterministic by date, weighted to user's rating.
 
 use serde::Serialize;
 use chrono::Utc;

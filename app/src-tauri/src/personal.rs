@@ -1,4 +1,4 @@
-﻿//! Personal game analytics — per-opening stats and repertoire queries.
+//! Personal game analytics — per-opening stats and repertoire queries.
 //!
 //! These work on app.personal_games (imported from Chess.com/Lichess)
 //! and complement the cross-source views in analytics.rs.

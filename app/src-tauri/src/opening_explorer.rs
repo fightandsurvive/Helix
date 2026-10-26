@@ -1,4 +1,4 @@
-﻿//! Opening analytics — position win rates broken down by legend.
+//! Opening analytics — position win rates broken down by legend.
 
 use serde::Serialize;
 use tauri::State;

@@ -1,4 +1,4 @@
-﻿import { useState } from "react";
+import { useState } from "react";
 import { Chess } from "chess.js";
 import { invoke } from "@tauri-apps/api/core";
 

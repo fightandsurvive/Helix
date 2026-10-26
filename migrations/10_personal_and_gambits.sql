@@ -1,4 +1,4 @@
-﻿-- ══════════════════════════════════════════════════════════════════════
+-- ══════════════════════════════════════════════════════════════════════
 -- Migration 10 — Personal game import and gambit registry.
 --
 -- Personal games come from Chess.com, Lichess, or Helix's own eval/selfplay
@@ -11,6 +11,7 @@
 -- ingest/gambit_stats.py after every import.
 -- ══════════════════════════════════════════════════════════════════════
 
+CREATE SCHEMA IF NOT EXISTS app;
 CREATE TABLE app.player_profiles (
     profile_id   BIGSERIAL PRIMARY KEY,
     platform     TEXT NOT NULL CHECK (platform IN ('helix','chesscom','lichess')),
@@ -106,9 +107,12 @@ CREATE OR REPLACE FUNCTION app.best_repertoire_against(
 )
 RETURNS TABLE (eco_code CHAR(3), opening_name TEXT, games BIGINT, score REAL)
 LANGUAGE sql STABLE AS $$
-    SELECT g.eco_code, g.opening_name, COUNT(*),
-           (COUNT(*) FILTER (WHERE g.result = 'win')
-            + 0.5 * COUNT(*) FILTER (WHERE g.result = 'draw'))::REAL / COUNT(*)
+    SELECT
+        g.eco_code,
+        g.opening_name,
+        COUNT(*) AS games,
+        (COUNT(*) FILTER (WHERE g.result = 'win')
+         + 0.5 * COUNT(*) FILTER (WHERE g.result = 'draw'))::REAL / COUNT(*) AS score
     FROM app.personal_games g
     WHERE g.profile_id = p_profile_id
       AND g.user_color = 'black'

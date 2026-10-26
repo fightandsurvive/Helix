@@ -1,4 +1,4 @@
-﻿import { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { useInvoke } from "./hooks/useInvoke";
 import { useCapabilities } from "./hooks/useCapabilities";
 import { Capability } from "./components/Capability";

@@ -1,4 +1,4 @@
-﻿import { useInvoke } from "../hooks/useInvoke";
+import { useInvoke } from "../hooks/useInvoke";
 import { useEffect } from "react";
 
 interface Analysis {

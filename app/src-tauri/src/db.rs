@@ -1,4 +1,4 @@
-﻿//! PostgreSQL connection pool — created once at startup, shared via AppState.
+//! PostgreSQL connection pool — created once at startup, shared via AppState.
 
 use sqlx::{postgres::PgPoolOptions, Pool, Postgres};
 

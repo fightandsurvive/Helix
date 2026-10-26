@@ -1,30 +1,34 @@
-﻿-- ══════════════════════════════════════════════════════════════════════
--- Migration 07 — Legend-first partitioning (REPLACES migration 01's
--- games/moves tables).
+-- Migration 07 - Legend-first partitioning.
 --
--- Why: adapter training needs "all Morphy games" queries to scan exactly
--- one partition. In the ECO-first layout, that query scans all 24 ECO
--- partitions. Legend-first is a 6× speedup on the adapter training loop,
--- which runs on every retrain of every legend.
+-- Replaces the ECO-first layout from migration 01. Adapter training queries
+-- ("give me all Morphy games") now scan exactly one partition per legend,
+-- which is a 6x speedup over the old layout where those queries scanned
+-- all 24 ECO partitions.
 --
--- Structure:
---   games → LIST by legend_tag:
---     'general' → LIST by LEFT(eco_code,1) → HASH 4-way (24 sub-partitions)
---     'morphy', 'petrosian', 'tal', 'kasparov', 'fischer', 'carlsen' → flat
+-- Design decisions:
 --
--- Moves mirror this structure.
+-- 1. games: LIST partition by legend_tag only. The 'general' partition is
+--    a flat leaf table. Sub-partitioning 'general' by eco family was tried
+--    and rejected - it requires PRIMARY KEY on an expression, which
+--    PostgreSQL does not support, and the marginal query speedup did not
+--    justify the schema complexity.
 --
--- After recreating the tables, this migration ALSO recreates the
--- materialized views from migration 05 (which were dropped CASCADE).
--- ══════════════════════════════════════════════════════════════════════
+-- 2. moves: LIST partition by legend_tag, then HASH by game_id inside each
+--    legend partition. 528M total rows means parallel scan benefit is
+--    real, and game_id is in the PRIMARY KEY so hash partitioning works.
+--
+-- 3. All PRIMARY KEYs include every partition key column at every level.
+--    This is a PostgreSQL requirement for partitioned tables.
 
--- Drop old tables and their dependent views (CASCADE handles the views).
+-- Drop existing structures (from migration 01 and any partial 07 run)
 DROP TABLE IF EXISTS gm.moves CASCADE;
 DROP TABLE IF EXISTS gm.games CASCADE;
 DROP MATERIALIZED VIEW IF EXISTS gm.position_stats CASCADE;
 DROP MATERIALIZED VIEW IF EXISTS gm.position_stats_by_legend CASCADE;
 
--- ── Games ───────────────────────────────────────────────────────────
+-- Games table: partitioned by legend_tag. Primary key includes legend_tag
+-- (its partition key). One flat leaf table for the 'general' legend;
+-- small dedicated tables for each historical legend.
 CREATE TABLE gm.games (
     game_id      BIGINT NOT NULL,
     eco_code     CHAR(3) NOT NULL CHECK (eco_code ~ '^[A-E][0-9]{2}$'),
@@ -45,47 +49,27 @@ CREATE TABLE gm.games (
     PRIMARY KEY (game_id, legend_tag)
 ) PARTITION BY LIST (legend_tag);
 
--- General branch: LIST by ECO family, then HASH 4-way per family.
-CREATE TABLE gm.games_general PARTITION OF gm.games
-    FOR VALUES IN ('general') PARTITION BY LIST (LEFT(eco_code, 1));
-
-CREATE TABLE gm.games_general_a PARTITION OF gm.games_general FOR VALUES IN ('A') PARTITION BY HASH (eco_code);
-CREATE TABLE gm.games_general_b PARTITION OF gm.games_general FOR VALUES IN ('B') PARTITION BY HASH (eco_code);
-CREATE TABLE gm.games_general_c PARTITION OF gm.games_general FOR VALUES IN ('C') PARTITION BY HASH (eco_code);
-CREATE TABLE gm.games_general_d PARTITION OF gm.games_general FOR VALUES IN ('D') PARTITION BY HASH (eco_code);
-CREATE TABLE gm.games_general_e PARTITION OF gm.games_general FOR VALUES IN ('E') PARTITION BY HASH (eco_code);
-
-DO $$
-DECLARE fam TEXT; i INT;
-BEGIN
-    FOREACH fam IN ARRAY ARRAY['a','b','c','d','e'] LOOP
-        FOR i IN 0..3 LOOP
-            EXECUTE format(
-                'CREATE TABLE gm.games_general_%s_%s '
-                'PARTITION OF gm.games_general_%s '
-                'FOR VALUES WITH (MODULUS 4, REMAINDER %s);',
-                fam, i, fam, i
-            );
-        END LOOP;
-    END LOOP;
-END$$;
-
--- Legend branches: one flat table each (small, no further partitioning).
-CREATE TABLE gm.games_morphy    PARTITION OF gm.games FOR VALUES IN ('morphy');
+CREATE TABLE gm.games_general  PARTITION OF gm.games FOR VALUES IN ('general');
+CREATE TABLE gm.games_morphy   PARTITION OF gm.games FOR VALUES IN ('morphy');
 CREATE TABLE gm.games_petrosian PARTITION OF gm.games FOR VALUES IN ('petrosian');
-CREATE TABLE gm.games_tal       PARTITION OF gm.games FOR VALUES IN ('tal');
-CREATE TABLE gm.games_kasparov  PARTITION OF gm.games FOR VALUES IN ('kasparov');
-CREATE TABLE gm.games_fischer   PARTITION OF gm.games FOR VALUES IN ('fischer');
-CREATE TABLE gm.games_carlsen   PARTITION OF gm.games FOR VALUES IN ('carlsen');
+CREATE TABLE gm.games_tal      PARTITION OF gm.games FOR VALUES IN ('tal');
+CREATE TABLE gm.games_kasparov PARTITION OF gm.games FOR VALUES IN ('kasparov');
+CREATE TABLE gm.games_fischer  PARTITION OF gm.games FOR VALUES IN ('fischer');
+CREATE TABLE gm.games_carlsen  PARTITION OF gm.games FOR VALUES IN ('carlsen');
 
-CREATE INDEX ON gm.games_morphy    (date_played);
+-- Indexes for per-legend queries (adapter training) and by-eco (opening stats)
+CREATE INDEX ON gm.games_general  (eco_code);
+CREATE INDEX ON gm.games_general  (date_played);
+CREATE INDEX ON gm.games_morphy   (date_played);
 CREATE INDEX ON gm.games_petrosian (date_played);
-CREATE INDEX ON gm.games_tal       (date_played);
-CREATE INDEX ON gm.games_kasparov  (date_played);
-CREATE INDEX ON gm.games_fischer   (date_played);
-CREATE INDEX ON gm.games_carlsen   (date_played);
+CREATE INDEX ON gm.games_tal      (date_played);
+CREATE INDEX ON gm.games_kasparov (date_played);
+CREATE INDEX ON gm.games_fischer  (date_played);
+CREATE INDEX ON gm.games_carlsen  (date_played);
 
--- ── Moves ───────────────────────────────────────────────────────────
+-- Moves table: partitioned by legend_tag, sub-partitioned by game_id hash.
+-- Primary key includes game_id (sub-partition key) and legend_tag
+-- (parent partition key) to satisfy PostgreSQL's partition rules.
 CREATE TABLE gm.moves (
     move_id       BIGSERIAL,
     game_id       BIGINT NOT NULL,
@@ -97,9 +81,10 @@ CREATE TABLE gm.moves (
     move_notation TEXT NOT NULL,
     phase_flag    TEXT CHECK (phase_flag IN ('Opening','Middlegame','Endgame')),
     piece_count   SMALLINT,
-    PRIMARY KEY (move_id, legend_tag)
+    PRIMARY KEY (move_id, legend_tag, game_id)
 ) PARTITION BY LIST (legend_tag);
 
+-- General partition: hash 8-way for parallel scan on 528M rows
 CREATE TABLE gm.moves_general PARTITION OF gm.moves
     FOR VALUES IN ('general') PARTITION BY HASH (game_id);
 
@@ -116,6 +101,7 @@ BEGIN
     END LOOP;
 END$$;
 
+-- Legend partitions: hash 4-way each (smaller tables, less parallelism needed)
 CREATE TABLE gm.moves_morphy    PARTITION OF gm.moves FOR VALUES IN ('morphy')    PARTITION BY HASH (game_id);
 CREATE TABLE gm.moves_petrosian PARTITION OF gm.moves FOR VALUES IN ('petrosian') PARTITION BY HASH (game_id);
 CREATE TABLE gm.moves_tal       PARTITION OF gm.moves FOR VALUES IN ('tal')       PARTITION BY HASH (game_id);
@@ -134,18 +120,24 @@ BEGIN
                 'FOR VALUES WITH (MODULUS 4, REMAINDER %s);',
                 leg, i, leg, i
             );
-        END LOOP;
-        FOR i IN 0..3 LOOP
             EXECUTE format('CREATE INDEX ON gm.moves_%s_%s (game_id, ply_number);', leg, i);
             EXECUTE format('CREATE INDEX ON gm.moves_%s_%s (fen_md5);', leg, i);
         END LOOP;
     END LOOP;
 END$$;
 
-CREATE INDEX ON gm.moves_general (fen_md5);
-CREATE INDEX ON gm.moves_general (game_id, ply_number);
+-- Indexes on general moves sub-partitions
+DO $$
+DECLARE i INT;
+BEGIN
+    FOR i IN 0..7 LOOP
+        EXECUTE format('CREATE INDEX ON gm.moves_general_%s (game_id, ply_number);', i);
+        EXECUTE format('CREATE INDEX ON gm.moves_general_%s (fen_md5);', i);
+    END LOOP;
+END$$;
 
--- ── Recreate the materialized views from migration 05 ───────────────
+-- Recreate materialized views from migration 05 (dropped by CASCADE above).
+-- The joins use (game_id, legend_tag) which is the PRIMARY KEY of games.
 CREATE MATERIALIZED VIEW gm.position_stats AS
 SELECT
     m.fen_md5,

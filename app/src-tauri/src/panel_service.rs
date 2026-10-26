@@ -1,4 +1,4 @@
-﻿//! Persistent panel service bridge.
+//! Persistent panel service bridge.
 //!
 //! Spawns `python -m engine.panel_service` once (lazy on first request),
 //! keeps stdin/stdout pipes open, serializes requests behind a mutex.
