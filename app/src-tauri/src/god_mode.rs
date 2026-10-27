@@ -25,11 +25,7 @@ pub struct GodModeAnalysis {
 }
 
 fn run_sf_helper(fen: &str) -> Result<serde_json::Value, String> {
-    let mut cmd = Command::new("python");
-    cmd.args(["-m", "engine.god_mode_helper", fen]);
-    if let Some(root) = crate::repo::find_root() {
-        cmd.current_dir(root);
-    }
+    let mut cmd = crate::repo::python_command("engine.god_mode_helper", &[fen]);
     let output = cmd.output().map_err(|e| format!("spawn helper: {e}"))?;
     if !output.status.success() {
         return Err(format!(

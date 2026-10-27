@@ -33,11 +33,10 @@ pub async fn import_personal_games(
     let p = platform.clone();
 
     let output = tokio::task::spawn_blocking(move || -> Result<(), String> {
-        let mut cmd = Command::new("python");
-        cmd.args(["-m", "ingest.personal_games", "--platform", &p, "--username", &u]);
-        if let Some(root) = crate::repo::find_root() {
-            cmd.current_dir(root);
-        }
+        let mut cmd = crate::repo::python_command(
+            "ingest.personal_games",
+            &["--platform", &p, "--username", &u],
+        );
         let out = cmd.output().map_err(|e| format!("spawn import: {e}"))?;
         if !out.status.success() {
             return Err(format!(

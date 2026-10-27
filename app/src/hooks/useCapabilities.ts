@@ -6,6 +6,7 @@ export interface Capabilities {
   training_available: boolean;
   coach_llm_available: boolean;
   stockfish_available: boolean;
+  stockfish_path: string;
   syzygy_available: boolean;
   gpu_name: string | null;
   gpu_vram_gb: number | null;

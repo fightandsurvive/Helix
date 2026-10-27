@@ -15,6 +15,12 @@ interface Highlight {
     color: string;
 }
 
+// Shared board colors — used everywhere a Chessboard is rendered.
+// Steel blue for dark, soft cream for light. Good contrast for both
+// white and black pieces; classic chess aesthetic without being dull.
+export const BOARD_DARK = "#4a6b8a";
+export const BOARD_LIGHT = "#d6dce5";
+
 export const ChessBoardView = ({
     fen,
     setFen,
@@ -25,7 +31,6 @@ export const ChessBoardView = ({
     const [selectedSquare, setSelectedSquare] = useState<string | null>(null);
     const [highlights, setHighlights] = useState<Highlight[]>([]);
 
-    // Load saved highlights when position changes
     useEffect(() => {
         if (!gameId) {
             setHighlights([]);
@@ -54,8 +59,8 @@ export const ChessBoardView = ({
 
     const tryMove = (from: string, to: string): boolean => {
         const g = new Chess(fen);
-        // Attempt without promotion first — chess.js rejects promotion
-        // param on non-promotion moves, which is the bug we had.
+        // Try without promotion first — chess.js rejects promotion param on
+        // non-promotion moves, which was the drag-fail bug.
         try {
             const m = g.move({ from, to });
             if (m) {
@@ -64,10 +69,8 @@ export const ChessBoardView = ({
                 setSelectedSquare(null);
                 return true;
             }
-        } catch {
-            /* fall through to promotion attempt */
-        }
-        // Attempt with queen promotion (only needed when target rank requires)
+        } catch { }
+        // Fall back to queen promotion (only fires when pawn reaches back rank)
         try {
             const m = g.move({ from, to, promotion: "q" });
             if (m) {
@@ -76,16 +79,26 @@ export const ChessBoardView = ({
                 setSelectedSquare(null);
                 return true;
             }
-        } catch {
-            /* illegal move */
-        }
+        } catch { }
         return false;
     };
 
-    const onSquareClick = (sq: string) => {
+    const onDrop = (from: string, to: string): boolean => {
+        console.debug("[ChessBoardView] onPieceDrop:", from, "→", to);
+        return tryMove(from, to);
+    };
+
+    const onDragBegin = () => {
+        // CRITICAL: clear external click-selection on drag start so it does
+        // not fight react-chessboard's internal drag state.
+        setSelectedSquare(null);
+    };
+
+    const onClick = (sq: string) => {
         if (selectedSquare) {
             if (tryMove(selectedSquare, sq)) return;
             setSelectedSquare(null);
+            return;
         }
         const g = new Chess(fen);
         const piece = g.get(sq as any);
@@ -94,7 +107,7 @@ export const ChessBoardView = ({
         }
     };
 
-    const onSquareRightClick = (sq: string) => {
+    const onRightClick = (sq: string) => {
         const idx = highlights.findIndex((h) => h.square === sq);
         const next =
             idx >= 0
@@ -106,16 +119,16 @@ export const ChessBoardView = ({
 
     const squareStyles: Record<string, React.CSSProperties> = {};
     if (lastMove) {
-        squareStyles[lastMove[0]] = { backgroundColor: "rgba(34,211,238,0.20)" };
-        squareStyles[lastMove[1]] = { backgroundColor: "rgba(34,211,238,0.35)" };
+        squareStyles[lastMove[0]] = { backgroundColor: "rgba(34,211,238,0.35)" };
+        squareStyles[lastMove[1]] = { backgroundColor: "rgba(34,211,238,0.55)" };
     }
     if (selectedSquare) {
-        squareStyles[selectedSquare] = { backgroundColor: "rgba(34,211,238,0.50)" };
+        squareStyles[selectedSquare] = { backgroundColor: "rgba(34,211,238,0.65)" };
     }
     highlights.forEach((h) => {
         squareStyles[h.square] = {
             ...squareStyles[h.square],
-            backgroundColor: h.color + "66",
+            backgroundColor: h.color + "88",
         };
     });
 
@@ -124,15 +137,17 @@ export const ChessBoardView = ({
             <Chessboard
                 position={fen}
                 boardWidth={640}
-                onPieceDrop={(from, to) => tryMove(from, to)}
-                onSquareClick={(sq) => onSquareClick(sq)}
-                onSquareRightClick={(sq) => onSquareRightClick(sq)}
-                customDarkSquareStyle={{ backgroundColor: "#0a0a0c" }}
-                customLightSquareStyle={{ backgroundColor: "rgba(220,235,245,0.85)" }}
+                arePiecesDraggable={true}
+                onPieceDrop={onDrop}
+                onPieceDragBegin={onDragBegin}
+                onSquareClick={onClick}
+                onSquareRightClick={onRightClick}
+                customDarkSquareStyle={{ backgroundColor: BOARD_DARK }}
+                customLightSquareStyle={{ backgroundColor: BOARD_LIGHT }}
                 customBoardStyle={{
                     borderRadius: 6,
                     boxShadow:
-                        "0 0 60px rgba(34,211,238,0.15), inset 0 0 30px rgba(0,0,0,0.4)",
+                        "0 0 60px rgba(34,211,238,0.20), inset 0 0 30px rgba(0,0,0,0.3)",
                 }}
                 customSquareStyles={squareStyles}
             />

@@ -33,7 +33,7 @@ class Capabilities:
     coach_llm_available: bool
     stockfish_available: bool
     syzygy_available: bool
-
+    stockfish_path: str
     gpu_name: str | None
     gpu_vram_gb: float | None
     is_blackwell: bool
@@ -117,6 +117,7 @@ def probe() -> Capabilities:
         training_available=training_available,
         coach_llm_available=coach_available,
         stockfish_available=Path(settings.stockfish_path).exists(),
+        stockfish_path=str(settings.stockfish_path),
         syzygy_available=Path(settings.syzygy_path).exists(),
         gpu_name=gpu_name,
         gpu_vram_gb=gpu_vram,

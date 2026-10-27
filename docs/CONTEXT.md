@@ -1,140 +1,148 @@
 # Helix Project — Continuation Context
 
-I am continuing a large project from a previous chat. This document is the
-complete context. Read it fully before responding. Do not ask clarifying
-questions about anything covered here.
+Continuing a local-first chess workstation project. Read fully before responding.
 
-## Project Identity
+## Identity
 
-- **Project name**: Helix (the application)
-- **Engine name**: Trinstinctus (the neural MCTS engine core)
-- **Tutor name**: The Legends (a 7-voice analysis panel: 6 LoRA personality
-  adapters — Morphy, Petrosian, Tal, Kasparov, Fischer, Carlsen — plus
-  Stockfish as the objective oracle)
-- **Goal**: An enterprise-grade, local-first chess engine + coaching
-  workstation. Target: beat Lc0, compete with Stockfish 17 single-thread
-  (45-55% score is the realistic target; dominance over SF is not).
+- **Project**: Helix (desktop app)
+- **Engine**: Trinstinctus (neural MCTS — disabled on current hardware, gated)
+- **Tutor**: The Legends (7-voice panel — gated)
+- **Coach**: Stockfish + DeepSeek-R1 14B via Ollama (active)
 
 ## Hardware
 
-- AMD Ryzen 9 9950X3D (dual-die 3D V-Cache)
-- NVIDIA RTX A2000 12GB (display, passthrough to Windows VM)
-- NVIDIA RTX PRO 5000 Blackwell 72GB (headless compute, NVFP4)
-- 128GB DDR5-5400 (2×64GB)
-- Linux Mint host + Windows 11 QEMU/KVM VM (A2000 passthrough)
+- Windows 11, Core i9 13th-gen, 32GB RAM, NVIDIA RTX A2000 12GB
+- Python 3.13 venv at `.venv`
+- PostgreSQL 18 (port 5432, user `trin`, db `helix_db`, pw `trin_dev`)
+- Node 22, npm 10, Rust 1.99 (MSVC), VS 2022 Build Tools (C++ workload installed)
+- Tauri 2.12, React 18, Vite 5
+- Stockfish 19 at `C:/temp/stockfish/stockfish.exe`
+- Ollama running, DeepSeek-R1 14B pulled
 
-## Stack (pinned)
+## Migrations
 
-- Python 3.15
-- PyTorch 2.14 (NVGEMM, CUTLASS-SM100)
-- torchao 0.18 (NVFP4 dense-linear training — prototype API)
-- PostgreSQL 18 (io_uring async I/O)
-- psycopg3 (not psycopg2)
-- Tauri 2.12 + React 18 + Rust 1.90 (MSRV)
-- python-chess 1.11.2
-- DeepSeek-R1 32B via local Ollama (for The Legends commentary)
+14 migrations applied. **Data is loaded:**
+- `gm.eco_dict`: 3865 (PK is now (eco_code, pgn))
+- `app.gambits`: 1315
+- `app.opening_lines`: 3865
 
-## Training Pipeline (locked)
+**Migration runner has new flags:**
+- `--resync` / `--resync-file NAME` — update hash without re-apply (for line-ending/BOM changes)
+- `--force-reapply NAME` — delete record so migration re-runs (only if idempotent)
+- `--mark-applied NAME` — record as applied without running SQL (for manual psql application)
 
-    Stage 1  Supervised bootstrap         13.2M GM games              ~2900 Elo
-    Stage 2a Distillation bulk            SF depth 18, 2M positions   ~3050-3100
-    Stage 2b Distillation refinement      SF depth 24, 100K positions ~3100-3150
-    Stage 3  Self-play RL                 MCTS-generated targets      continuous
-    Stage 3a SPRT gates                   Stockfish evaluation        gates each gen
-    ▶ Freeze                             Plateau detection           ~3450-3550 Elo
-    Stage 4  Six LoRA adapters            Per-legend PGNs             personality only
-    Stage 4a Adapter validation           Held-out move-match gates the panel
-    Stage 5  Sequential phase router      Runtime config              blended play
-    Stage 6  Learned adaptive router      (deferred, optional)
+**Migration 14 was applied manually in psql, then recorded via `--mark-applied`.**
+Migrations 01, 03-06, 08-13 are NOT idempotent. If hashes invalidate, use `--resync-file` (content unchanged) not `--force-reapply`.
 
-**Freeze trigger** is plateau detection, NOT a fixed Elo. Freeze when any of:
-- 3 consecutive SPRT rejects
-- Elo window < 15 over 5 generations
-- Absolute Elo ≥ 3500
+## Design Decisions (locked)
 
-## Key Design Decisions (do not re-litigate)
+1. Free closed-source (proprietary freeware)
+2. Feature-gated via `.env` (`HELIX_ENGINE_ENABLED`, `HELIX_TRAINING_ENABLED`, `HELIX_COACH_LLM_ENABLED`)
+3. Local-first, no telemetry
+4. Two-tier SF distillation (depth 18 bulk, depth 24 refine) — deferred until Blackwell hardware
+5. NVFP4 with BF16 tail — deferred
+6. Sequential opening routing (Morphy 1-8, Petrosian 9-16)
+7. Transposition-aware gambit matcher
+8. Subprocess cwd = repo root (`repo::find_root()` + `cmd.current_dir`)
+9. Capability probe runs from repo root
 
-1. **Sequential opening routing** — Morphy plies 1-8 (development race),
-   Petrosian plies 9-16 (consolidation). Sequential, not 50/50 blend,
-   because the styles are opposites.
+## Resolved Bugs (this session)
 
-2. **Two-tier distillation** — Depth 18 for the 2M bulk corpus (4-6 days),
-   depth 24 for the 100K refinement corpus (1-2 days). Depth 22 for 2M
-   would take a month; the tiered approach gets the same quality with
-   bounded time.
+- Board movement (ChessBoardView rewritten — no more AnnotationLayer blocking)
+- Coach/god_mode/panel subprocess cwd
+- God mode DB query (removed — was querying non-existent column)
+- Engine/Training tabs ErrorBoundary (App.tsx uses `<Capability>`)
+- Tokio runtime bug in `lib.rs` (uses `tauri::async_runtime::block_on`)
+- `common/db.py` import ordering (atexit at bottom)
+- ECO URL (`all.tsv` never existed — fetch a-e individually)
+- Windows temp path (`tempfile.gettempdir`)
+- Personal game 404 (clear error message)
+- eco_dict PK was (eco_code) → migration 14, 3865 openings now loaded
+- Gambit/opening ID truncation → appended pgn md5 suffix
 
-3. **NVFP4 with BF16 tail** — Last 15% of transformer blocks stay in BF16
-   (TorchTitan recipe). torch.compile required for competitive throughput.
+## Known Issues (remaining)
 
-4. **Gumbel-AlphaZero is OPT-IN** — Default is PUCT. Gumbel must be SPRT-
-   verified at 400 sims before enabling in production. The paper claims ~3×
-   sample efficiency; validate empirically.
+- **PlayTab hardcodes `"stockfish"`** for SF path — should use `caps.stockfish_path`
+- **Arrows (right-drag)** not implemented — only right-click highlight
+- **No personal games imported** — needs real Lichess/Chess.com username
+- **Accuracy worker not run** — WeaknessFinder empty until `python -m training.accuracy_worker` runs
+- **Puzzles not loaded** (requires `zstd` + 450MB download)
+- **Git push to remote failing** — SSH port 22 blocked; try port 443 or HTTPS
 
-5. **Syzygy multi-path auto-detect** — 3-4-5 / 6 / 7 auto-discovered at
-   startup. Max probe pieces scales with installed set. Midgame probing
-   was considered and RULED OUT — no proven benefit for 10+ piece positions.
+## File layout (key files)
 
-6. **LoRA rank scales with dataset size** — Morphy r=4 (400 games), Carlsen
-   r=32 (4000+ games). Full fine-tuning would catastrophically overfit
-   Morphy; LoRA is the only viable approach.
+app/src-tauri/src/
+lib.rs — command registration, Tokio setup
+capabilities.rs — runtime probe (Python subprocess)
+repo.rs — find_root() for subprocess cwd
+coach.rs — Stockfish + LLM coach
+play.rs — Play vs Stockfish
+import.rs — Personal game import
+god_mode.rs — Stockfish + brilliant candidates
+db.rs — pool + AppState
+errors.rs — typed AppError
+analytics.rs — gambit/ECO/accuracy analytics
+personal.rs — personal game stats
+weakness.rs — weakness finder
+annotations.rs — board annotations
+eval_graph.rs — eval curve data
+daily_puzzle.rs — daily puzzle + streaks
+panel_service.rs — Legends panel bridge (gated)
+training.rs — training monitor (gated)
+training_tools.rs — opening/puzzle trainers
+engine_bridge.rs — style weights, adapters (gated)
+opening_explorer.rs — opening analytics
 
-7. **Adapters trained AFTER freeze, in isolation, then validated** — The
-   panel does not enable until all 6 adapters pass their held-out
-   move-match thresholds. Partial adapter sets degrade gracefully (panel
-   shows base + SF only).
 
-8. **Adapters do not affect the base** — The base is frozen at plateau.
-   The training loop for stages 4+ operates on the frozen base. If adapter
-   training fails, the engine still ships at full strength.
+## TODO for Next Session (priority order)
 
-9. **Transposition-aware gambit matcher** — Match by position key
-   (FEN minus halfmove/fullmove), not prefix. Prefix-matching under-counts
-   by 30-40%.
+1. **Wire `caps.stockfish_path` into PlayTab** — currently broken
+2. **Import real personal games** and run accuracy worker
+3. **Load puzzles** (install zstd, then `python -m ingest.puzzle_loader --source lichess`)
+4. **Implement arrow annotations** (right-drag on board)
+5. **Fix git push** (SSH port 443 or HTTPS PAT)
+6. **Test all tabs end-to-end** with real data
+7. First-run wizard for missing dependencies
 
-10. **Self-play retention** — 12 generations kept in full, generations
-    13-20 sampled to 1% (regression corpus), 21+ dropped. Enforced by
-    selfplay.prune_old_generations.
+## Commands Quick Reference
 
-11. **Panel service is a persistent subprocess** — Loads base + adapters +
-    SF once (~10s), answers over stdin/stdout JSON lines (~350-600ms per
-    request). Per-request subprocess would be unusable.
+```powershell
+# Activate venv
+cd C:\Users\rahul\source\repos\helix
+.\.venv\Scripts\Activate.ps1
 
-12. **Analytics unified across personal + eval sources** — Same tables,
-    same views. "How does Trinstinctus do vs SF with the Evans Gambit?"
-    and "how does the user do with the KID?" are the same query shape.
+# Run app
+cd app; npm run tauri dev
 
-13. **Accuracy worker uses N+1 SF calls, not 2N** — One eval per position,
-    loss = e_i + e_{i+1}_opp. Halves the SF cost.
+# Rebuild after Rust changes
+cd app/src-tauri; cargo check
 
-## Current State
+# Migrations (normal)
+python migrations/run_migrations.py
 
-The complete project was delivered across 4 batches:
+# Migration admin
+python migrations/run_migrations.py --resync-file NAME.sql    # line-ending fix
+python migrations/run_migrations.py --mark-applied NAME.sql   # applied manually
+python migrations/run_migrations.py --force-reapply NAME.sql  # idempotent re-run
 
-- **Batch 1**: Config (settings, logging), common (db, retry), 11 migrations
-- **Batch 2**: Engine (16 files — encoders, model, MCTS, Gumbel, LoRA, FP4,
-  Syzygy, phase router, gambit matcher, panel service, UCI engine)
-- **Batch 3**: Training (15 files) + Ingest (8 files)
-- **Batch 4**: Tauri app (Rust + TypeScript + config), tests, scripts
+# Data import
+python -m ingest.eco_loader
+python -m ingest.gambit_registry
+python -m ingest.opening_lines
+python -m ingest.personal_games --platform lichess --username YOUR_HANDLE
+python -m ingest.puzzle_loader --source lichess
 
-**Total: ~95 files, ~9000 lines.** Full manifest is in the git repo at
-`docs/MANIFEST.md`. White papers at `docs/ENGINE_WHITEPAPER.md` and
-`docs/APP_WHITEPAPER.md`.
-
-The code is at: [REPO URL — fill in]
-
-## What I Need Next
-
-[FILL IN: the specific task for this session — e.g., "the panel service
-is failing to load adapters when X happens", or "help me wire the UCI
-subprocess into analyze_position", or "add feature Y"]
+# Accuracy
+python -m training.accuracy_worker
+```
 
 ## Response Style
+Direct, technical, no filler
 
-- Direct, technical, no filler.
-- If a design decision here needs revisiting, say so explicitly — do not
-  silently deviate.
-- Deliver complete, runnable code with comments explaining *why*.
-- Flag honest caveats: "this doesn't work yet", "this is a placeholder",
-  "this won't scale past X".
-- Do not re-derive the design. The decisions above are locked. Focus on
-  implementation, debugging, and refinement.
+Full runnable code with comments
+
+Flag honest caveats
+
+One-line fixes preferred
+
+Do NOT re-derive design decisions

@@ -49,11 +49,10 @@ pub async fn coach_analyze(
     let fen_clone = fen.clone();
 
     let result = tokio::task::spawn_blocking(move || -> Result<CoachResponse, String> {
-        let mut cmd = Command::new("python");
-        cmd.args(["-m", "engine.coach", &fen_clone, "--persona", &persona]);
-        if let Some(root) = crate::repo::find_root() {
-            cmd.current_dir(root);
-        }
+        let mut cmd = crate::repo::python_command(
+            "engine.coach",
+            &[&fen_clone, "--persona", &persona],
+        );
         let output = cmd
             .output()
             .map_err(|e| format!("spawn coach: {e}"))?;

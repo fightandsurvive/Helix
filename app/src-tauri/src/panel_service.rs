@@ -22,11 +22,7 @@ struct PanelHandle {
 static PANEL_SERVICE: OnceCell<Mutex<Option<PanelHandle>>> = OnceCell::new();
 
 fn spawn_service() -> Result<PanelHandle, String> {
-    let mut cmd = Command::new("python");
-    cmd.args(["-m", "engine.panel_service"]);
-    if let Some(root) = crate::repo::find_root() {
-        cmd.current_dir(root);
-    }
+    let mut cmd = crate::repo::python_command("engine.panel_service", &[]);
     let mut child = cmd
         .stdin(Stdio::piped())
         .stdout(Stdio::piped())
